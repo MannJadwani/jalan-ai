@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09090b;
+  --foreground: #e4e4e7;
+  --card: #111113;
+  --card-border: #1c1c1f;
+  --surface: #161618;
 }
 
 @theme inline {
@@ -12,15 +15,101 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #27272a transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ─── EMBOSSED CARD ──────────────────────────────────────────────────── */
+.card-embossed {
+  background: #111113;
+  border: 1px solid #1f1f23;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.03) inset,
+    0 -1px 0 0 rgba(0,0,0,0.4) inset,
+    0 4px 12px rgba(0,0,0,0.5),
+    0 1px 3px rgba(0,0,0,0.3);
+}
+
+.card-embossed:hover {
+  border-color: #2a2a2f;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.04) inset,
+    0 -1px 0 0 rgba(0,0,0,0.4) inset,
+    0 8px 24px rgba(0,0,0,0.6),
+    0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* ─── PHOSPHOR ICON GLOW ─────────────────────────────────────────────── */
+.icon-glow-cyan {
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.5)) drop-shadow(0 0 12px rgba(34, 211, 238, 0.2));
+}
+.icon-glow-emerald {
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.5)) drop-shadow(0 0 12px rgba(52, 211, 153, 0.2));
+}
+.icon-glow-rose {
+  filter: drop-shadow(0 0 6px rgba(251, 113, 133, 0.5)) drop-shadow(0 0 12px rgba(251, 113, 133, 0.2));
+}
+.icon-glow-amber {
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5)) drop-shadow(0 0 12px rgba(251, 191, 36, 0.2));
+}
+.icon-glow-blue {
+  filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.5)) drop-shadow(0 0 12px rgba(96, 165, 250, 0.2));
+}
+.icon-glow-violet {
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.5)) drop-shadow(0 0 12px rgba(167, 139, 250, 0.2));
+}
+
+/* ─── GLASS HEADER ───────────────────────────────────────────────────── */
+.glass {
+  background: rgba(17, 17, 19, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ─── CHAT ANIMATIONS ────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chat-bubble { animation: slideUp 0.3s ease-out; }
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+.typing-dot { animation: bounce 1.4s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ─── SHIMMER LOADING ────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.02) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ─── SCROLLBAR ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* ─── PHOSPHOR PULSE ─────────────────────────────────────────────────── */
+@keyframes phosphor-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.phosphor-pulse {
+  animation: phosphor-pulse 2s ease-in-out infinite;
 }
