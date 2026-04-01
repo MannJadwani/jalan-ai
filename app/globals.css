@@ -113,3 +113,31 @@ body {
 .phosphor-pulse {
   animation: phosphor-pulse 2s ease-in-out infinite;
 }
+
+/* ─── MOBILE OPTIMIZATIONS ──────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Prevent iOS zoom on input focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  /* Thinner scrollbars on mobile */
+  ::-webkit-scrollbar { width: 3px; }
+
+  /* Better tap targets */
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent horizontal overflow */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Safe area padding for notched devices */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

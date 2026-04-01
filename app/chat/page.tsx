@@ -152,7 +152,6 @@ export default function ChatPage() {
 
   const fillInput = (text: string) => {
     setInput(text);
-    // Focus and move cursor to end
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
@@ -162,13 +161,11 @@ export default function ChatPage() {
     }, 50);
   };
 
-  // Load from localStorage on mount
   useEffect(() => {
     setMessages(loadMessages());
     setHydrated(true);
   }, []);
 
-  // Save to localStorage whenever messages change
   useEffect(() => {
     if (hydrated && messages.length > 0) {
       saveMessages(messages);
@@ -271,20 +268,20 @@ export default function ChatPage() {
     <div className="flex h-screen overflow-hidden bg-[#09090b]">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden pt-[60px] md:pt-0">
         {/* Header */}
-        <div className="glass border-b border-[#1c1c1f] px-6 py-4">
+        <div className="glass border-b border-[#1c1c1f] px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative">
-                <div className="w-9 h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center shadow-md shadow-black/40">
-                  <Zap className="w-5 h-5 text-cyan-400 icon-glow-cyan" />
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center shadow-md shadow-black/40">
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 icon-glow-cyan" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#09090b] phosphor-pulse" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 rounded-full border-2 border-[#09090b] phosphor-pulse" />
               </div>
               <div>
-                <h1 className="text-sm font-semibold text-white">Jalan AI Assistant</h1>
-                <p className="text-[11px] text-zinc-600">
+                <h1 className="text-xs sm:text-sm font-semibold text-white">Jalan AI Assistant</h1>
+                <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">
                   Ask anything about your business data
                 </p>
               </div>
@@ -292,32 +289,32 @@ export default function ChatPage() {
             {messages.length > 0 && (
               <button
                 onClick={clearChat}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161618] border border-[#2a2a2f] text-zinc-500 hover:text-rose-400 hover:border-rose-500/20 transition-all text-xs font-medium"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#161618] border border-[#2a2a2f] text-zinc-500 hover:text-rose-400 hover:border-rose-500/20 transition-all text-xs font-medium"
               >
                 <Trash2 className="w-3 h-3" />
-                Clear
+                <span className="hidden sm:inline">Clear</span>
               </button>
             )}
           </div>
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="flex flex-col items-center pt-8"
+                className="flex flex-col items-center pt-4 sm:pt-8"
               >
-                <div className="w-14 h-14 rounded-xl bg-[#161618] border border-[#2a2a2f] flex items-center justify-center mb-5 shadow-lg shadow-black/40">
-                  <Sparkles className="w-7 h-7 text-cyan-400 icon-glow-cyan" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#161618] border border-[#2a2a2f] flex items-center justify-center mb-4 sm:mb-5 shadow-lg shadow-black/40">
+                  <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-cyan-400 icon-glow-cyan" />
                 </div>
-                <h2 className="text-xl font-bold text-white mb-1.5 tracking-tight text-center">
+                <h2 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-1.5 tracking-tight text-center">
                   How can I help you today?
                 </h2>
-                <p className="text-zinc-600 mb-6 max-w-md text-sm text-center">
+                <p className="text-zinc-600 mb-5 sm:mb-6 max-w-md text-xs sm:text-sm text-center px-4">
                   Pick a question below to fill the input, edit it if needed, then send.
                 </p>
 
@@ -335,15 +332,15 @@ export default function ChatPage() {
                         {/* Category header */}
                         <button
                           onClick={() => setExpandedCategory(isExpanded ? null : cat.label)}
-                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.01] transition-colors"
+                          className="w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-white/[0.01] transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg ${cat.bg} border flex items-center justify-center flex-shrink-0`}>
-                              <cat.icon className={`w-4 h-4 ${cat.color} ${cat.glow}`} />
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${cat.bg} border flex items-center justify-center flex-shrink-0`}>
+                              <cat.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${cat.color} ${cat.glow}`} />
                             </div>
                             <div className="text-left">
-                              <p className="text-sm font-medium text-zinc-200">{cat.label}</p>
-                              <p className="text-[10px] text-zinc-600">{cat.questions.length} questions</p>
+                              <p className="text-xs sm:text-sm font-medium text-zinc-200">{cat.label}</p>
+                              <p className="text-[9px] sm:text-[10px] text-zinc-600">{cat.questions.length} questions</p>
                             </div>
                           </div>
                           <ChevronDown className={`w-4 h-4 text-zinc-600 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
@@ -351,12 +348,12 @@ export default function ChatPage() {
 
                         {/* Questions list */}
                         {isExpanded && (
-                          <div className="border-t border-[#1c1c1f] px-2 py-2 space-y-0.5 max-h-64 overflow-y-auto">
+                          <div className="border-t border-[#1c1c1f] px-1.5 sm:px-2 py-1.5 sm:py-2 space-y-0.5 max-h-56 sm:max-h-64 overflow-y-auto">
                             {cat.questions.map((q) => (
                               <button
                                 key={q}
                                 onClick={() => fillInput(q)}
-                                className="w-full text-left px-3 py-2 rounded-lg text-xs text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03] transition-all leading-snug"
+                                className="w-full text-left px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03] transition-all leading-snug"
                               >
                                 {q}
                               </button>
@@ -377,17 +374,17 @@ export default function ChatPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex gap-3 chat-bubble ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex gap-2 sm:gap-3 chat-bubble ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   {message.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0 mt-1 shadow-md shadow-black/30">
-                      <Bot className="w-4 h-4 text-cyan-400 icon-glow-cyan" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0 mt-1 shadow-md shadow-black/30">
+                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 icon-glow-cyan" />
                     </div>
                   )}
 
-                  <div className={`max-w-[80%] ${message.role === "user" ? "order-1" : ""}`}>
+                  <div className={`max-w-[85%] sm:max-w-[80%] ${message.role === "user" ? "order-1" : ""}`}>
                     <div
-                      className={`rounded-xl px-4 py-3 ${
+                      className={`rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 ${
                         message.role === "user"
                           ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-br-sm shadow-lg shadow-cyan-500/10"
                           : "card-embossed text-zinc-300 rounded-bl-sm"
@@ -395,11 +392,11 @@ export default function ChatPage() {
                     >
                       {/* SQL Query block */}
                       {message.sqlQuery && (
-                        <div className="mb-3 p-3 rounded-lg bg-black/30 border border-[#1c1c1f]">
+                        <div className="mb-2.5 sm:mb-3 p-2.5 sm:p-3 rounded-lg bg-black/30 border border-[#1c1c1f]">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
                               <Database className="w-3 h-3 text-emerald-400 icon-glow-emerald" />
-                              <span className="text-[9px] uppercase tracking-widest text-emerald-400 font-bold">
+                              <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-emerald-400 font-bold">
                                 SQL Query
                               </span>
                             </div>
@@ -414,20 +411,20 @@ export default function ChatPage() {
                               )}
                             </button>
                           </div>
-                          <code className="text-[11px] text-zinc-400 font-mono leading-relaxed block whitespace-pre-wrap">
+                          <code className="text-[10px] sm:text-[11px] text-zinc-400 font-mono leading-relaxed block whitespace-pre-wrap break-all">
                             {message.sqlQuery}
                           </code>
                         </div>
                       )}
 
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">
                         {message.content}
                       </p>
                     </div>
 
                     {/* Message actions */}
-                    <div className={`flex items-center gap-2 mt-1.5 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <span className="text-[10px] text-zinc-700">
+                    <div className={`flex items-center gap-2 mt-1 sm:mt-1.5 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <span className="text-[9px] sm:text-[10px] text-zinc-700">
                         {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       {message.role === "assistant" && (
@@ -450,8 +447,8 @@ export default function ChatPage() {
                   </div>
 
                   {message.role === "user" && (
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0 mt-1 order-2 shadow-md shadow-cyan-500/10">
-                      <User className="w-4 h-4 text-white" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0 mt-1 order-2 shadow-md shadow-cyan-500/10">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                     </div>
                   )}
                 </motion.div>
@@ -460,18 +457,18 @@ export default function ChatPage() {
 
             {/* Typing Indicator */}
             {isLoading && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 items-start">
-                <div className="w-8 h-8 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0 shadow-md shadow-black/30">
-                  <Bot className="w-4 h-4 text-cyan-400 icon-glow-cyan" />
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 sm:gap-3 items-start">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0 shadow-md shadow-black/30">
+                  <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 icon-glow-cyan" />
                 </div>
-                <div className="card-embossed rounded-xl rounded-bl-sm px-4 py-3">
+                <div className="card-embossed rounded-xl rounded-bl-sm px-3 sm:px-4 py-2.5 sm:py-3">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full typing-dot" />
                       <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full typing-dot" />
                       <div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" />
                     </div>
-                    <span className="text-[11px] text-zinc-600 ml-1">Querying database...</span>
+                    <span className="text-[10px] sm:text-[11px] text-zinc-600 ml-1">Querying database...</span>
                   </div>
                 </div>
               </motion.div>
@@ -482,10 +479,10 @@ export default function ChatPage() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t border-[#1c1c1f] p-4">
+        <div className="border-t border-[#1c1c1f] p-3 sm:p-4">
           <div className="max-w-3xl mx-auto">
             <form onSubmit={handleSubmit} className="relative">
-              <div className="flex items-end gap-2 p-2 rounded-xl card-embossed focus-within:border-cyan-500/20 transition-all">
+              <div className="flex items-end gap-2 p-1.5 sm:p-2 rounded-xl card-embossed focus-within:border-cyan-500/20 transition-all">
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -493,8 +490,8 @@ export default function ChatPage() {
                   onKeyDown={handleKeyDown}
                   placeholder="Ask anything about your data..."
                   rows={1}
-                  className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-700 resize-none px-3 py-2 focus:outline-none max-h-32"
-                  style={{ height: "auto", minHeight: "40px" }}
+                  className="flex-1 bg-transparent text-xs sm:text-sm text-white placeholder:text-zinc-700 resize-none px-2.5 sm:px-3 py-2 focus:outline-none max-h-32"
+                  style={{ height: "auto", minHeight: "36px" }}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement;
                     target.style.height = "auto";
@@ -504,13 +501,13 @@ export default function ChatPage() {
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="w-9 h-9 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed hover:from-cyan-400 hover:to-blue-400 transition-all shadow-lg shadow-cyan-500/10 flex-shrink-0"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white disabled:opacity-20 disabled:cursor-not-allowed hover:from-cyan-400 hover:to-blue-400 transition-all shadow-lg shadow-cyan-500/10 flex-shrink-0"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
             </form>
-            <p className="text-center text-[10px] text-zinc-700 mt-2">
+            <p className="text-center text-[9px] sm:text-[10px] text-zinc-700 mt-1.5 sm:mt-2">
               Jalan AI can make mistakes. Verify important data from your reports.
             </p>
           </div>
