@@ -30,8 +30,7 @@ interface Message {
   sqlQuery?: string;
 }
 
-const WEBHOOK_URL =
-  "http://117.250.36.98:5678/webhook/e5500488-4a22-47f7-abb7-0d2aba7f5f78";
+const CHAT_API_URL = "/api/chat";
 
 const questionCategories = [
   {
@@ -208,7 +207,7 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(WEBHOOK_URL, {
+      const response = await fetch(CHAT_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text.trim() }),
