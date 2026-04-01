@@ -219,13 +219,24 @@ export default function Dashboard() {
       }
 
       if (data.outstandingDues) {
-        setDues(
-          Array.isArray(data.outstandingDues)
-            ? data.outstandingDues
-            : data.outstandingDues && typeof data.outstandingDues === "object"
-            ? [data.outstandingDues]
-            : []
-        );
+        const rawDues: DuesItem[] = Array.isArray(data.outstandingDues)
+          ? data.outstandingDues
+          : data.outstandingDues && typeof data.outstandingDues === "object"
+          ? [data.outstandingDues]
+          : [];
+
+        // Sort by criticality: Critical > High > Medium > Low > Null
+        const riskOrder: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+        rawDues.sort((a, b) => {
+          const aRisk = Object.keys(riskOrder).find((k) => a.risk_status.includes(k));
+          const bRisk = Object.keys(riskOrder).find((k) => b.risk_status.includes(k));
+          const aOrder = aRisk ? riskOrder[aRisk] : 4;
+          const bOrder = bRisk ? riskOrder[bRisk] : 4;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return parseFloat(b.total_due_amount) - parseFloat(a.total_due_amount);
+        });
+
+        setDues(rawDues);
       }
 
       setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -307,9 +318,9 @@ export default function Dashboard() {
                 accent: "",
               },
               {
-                title: "Stockout Alerts",
-                value: stockouts.length.toString(),
-                sub: `${criticalStockouts} critical deficit items`,
+                title: "Critical Deficit",
+                value: criticalStockouts.toString(),
+                sub: `${stockouts.length} total items out of stock`,
                 icon: Package,
                 iconColor: "text-rose-400",
                 iconGlow: "icon-glow-rose",
