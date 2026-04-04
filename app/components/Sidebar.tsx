@@ -62,8 +62,10 @@ export default function Sidebar() {
 
   // Close mobile sidebar on route change
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    if (mobileOpen) {
+      requestAnimationFrame(() => setMobileOpen(false));
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {

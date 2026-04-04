@@ -29,8 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSession(getSession());
-    setLoading(false);
+    const s = getSession();
+    // Initialize auth state from localStorage on mount
+    requestAnimationFrame(() => {
+      setSession(s);
+      setLoading(false);
+    });
   }, []);
 
   const logout = () => {

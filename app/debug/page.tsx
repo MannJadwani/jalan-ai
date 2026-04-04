@@ -11,7 +11,6 @@ import {
   Copy,
   Check,
   AlertTriangle,
-  Zap,
   ArrowLeft,
   Terminal,
 } from "lucide-react";
