@@ -349,14 +349,28 @@ export default function Dashboard() {
   const visibleStockouts = stockoutsExpanded ? stockouts : stockouts.slice(0, COLLAPSED_COUNT);
   const visibleDues = duesExpanded ? dues : dues.slice(0, COLLAPSED_COUNT);
 
-  // Pie chart data from productPerf
-  const pieData = productPerf.map((item, i) => ({
-    name: item.group_name,
-    value: parseFloat(item.revenue_pct),
-    fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-    revenue: parseFloat(item.total_revenue),
-    units: parseInt(item.total_units_sold),
-  }));
+  // Pie chart data from productPerf — top 10 + "Others"
+  const pieData = (() => {
+    const sorted = [...productPerf].sort((a, b) => parseFloat(b.revenue_pct) - parseFloat(a.revenue_pct));
+    const top10 = sorted.slice(0, 10).map((item, i) => ({
+      name: item.group_name,
+      value: parseFloat(item.revenue_pct),
+      fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+      revenue: parseFloat(item.total_revenue),
+      units: parseInt(item.total_units_sold),
+    }));
+    const rest = sorted.slice(10);
+    if (rest.length > 0) {
+      top10.push({
+        name: "Others",
+        value: parseFloat(rest.reduce((s, i) => s + parseFloat(i.revenue_pct), 0).toFixed(1)),
+        fill: "#6b7280",
+        revenue: rest.reduce((s, i) => s + parseFloat(i.total_revenue), 0),
+        units: rest.reduce((s, i) => s + parseInt(i.total_units_sold), 0),
+      });
+    }
+    return top10;
+  })();
 
   const LoadingSkeleton = ({ h = "h-[300px]" }: { h?: string }) => (
     <div className={`${h} flex items-center justify-center`}>
