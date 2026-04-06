@@ -236,6 +236,7 @@ export default function Dashboard() {
   const [customersExpanded, setCustomersExpanded] = useState(false);
   const [stockoutsExpanded, setStockoutsExpanded] = useState(false);
   const [duesExpanded, setDuesExpanded] = useState(false);
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
 
   const COLLAPSED_COUNT = 10;
 
@@ -327,7 +328,9 @@ export default function Dashboard() {
 
       // ── Category Monthly ──
       if (data.categoryMonthly) {
-        setCategoryMonthly(normalizeArray(data.categoryMonthly));
+        const catArr: CategoryMonthlyItem[] = normalizeArray(data.categoryMonthly);
+        catArr.sort((a, b) => parseFloat(b.total_revenue) - parseFloat(a.total_revenue));
+        setCategoryMonthly(catArr);
       }
 
       setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -348,6 +351,7 @@ export default function Dashboard() {
   const visibleCustomers = customersExpanded ? topCustomers : topCustomers.slice(0, COLLAPSED_COUNT);
   const visibleStockouts = stockoutsExpanded ? stockouts : stockouts.slice(0, COLLAPSED_COUNT);
   const visibleDues = duesExpanded ? dues : dues.slice(0, COLLAPSED_COUNT);
+  const visibleCategories = categoryExpanded ? categoryMonthly : categoryMonthly.slice(0, COLLAPSED_COUNT);
 
   // Pie chart data from productPerf — top 10 + "Others"
   const pieData = (() => {
@@ -745,16 +749,16 @@ export default function Dashboard() {
                 </div>
               </div>
               <span className="text-[9px] sm:text-[10px] text-zinc-600 bg-[#161618] border border-[#2a2a2f] px-2 py-1 rounded-md font-mono">
-                {categoryMonthly.length} categories
+                {categoryExpanded ? categoryMonthly.length : Math.min(COLLAPSED_COUNT, categoryMonthly.length)}/{categoryMonthly.length}
               </span>
             </div>
 
             {loading ? <LoadingSkeleton h="h-[300px]" /> : categoryMonthly.length === 0 ? (
               <p className="text-xs text-zinc-600 text-center py-8">No data available</p>
             ) : (
+              <>
               <div className="overflow-x-auto -mx-3 sm:mx-0">
                 {(() => {
-                  // Get all unique months from the first category with data
                   const allMonths = categoryMonthly[0]?.monthly_breakdown?.map(m => m.month_label) || [];
 
                   return (
@@ -778,7 +782,7 @@ export default function Dashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {categoryMonthly.map((cat, ci) => (
+                        {visibleCategories.map((cat, ci) => (
                           <tr key={cat.group_name} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 sticky left-0 bg-[#111113] z-10">
                               <div className="flex items-center gap-2">
@@ -826,6 +830,10 @@ export default function Dashboard() {
                   );
                 })()}
               </div>
+              {categoryMonthly.length > COLLAPSED_COUNT && (
+                <ExpandButton expanded={categoryExpanded} total={categoryMonthly.length} onClick={() => setCategoryExpanded(!categoryExpanded)} />
+              )}
+              </>
             )}
           </motion.div>
 
