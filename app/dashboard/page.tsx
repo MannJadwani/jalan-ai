@@ -691,20 +691,11 @@ export default function Dashboard() {
               <p className="text-xs text-zinc-600 text-center py-8">No data available</p>
             ) : (
               <>
-                {/* Donut chart — always top 10 */}
-                <div className="h-[200px] sm:h-[240px] mb-4">
+                {/* Donut chart */}
+                <div className="h-[180px] mb-3">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="40%"
-                        outerRadius="65%"
-                        paddingAngle={2}
-                        dataKey="value"
-                        stroke="none"
-                      >
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius="38%" outerRadius="62%" paddingAngle={2} dataKey="value" stroke="none">
                         {pieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
@@ -715,67 +706,26 @@ export default function Dashboard() {
                           `${value}% — ${formatINR(props.payload.revenue)}`,
                           props.payload.name,
                         ]}
-                        contentStyle={{
-                          background: "#111113",
-                          border: "1px solid #1f1f23",
-                          borderRadius: "8px",
-                          fontSize: "11px",
-                          color: "#e4e4e7",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-                        }}
+                        contentStyle={{ background: "#111113", border: "1px solid #1f1f23", borderRadius: "8px", fontSize: "11px", color: "#e4e4e7", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
 
-                {/* Full table */}
-                <div className="overflow-x-auto -mx-3 sm:mx-0">
-                  <table className="w-full text-sm min-w-[500px]">
-                    <thead>
-                      <tr className="border-b border-[#1c1c1f]">
-                        {["#", "Category", "Revenue", "Units Sold", "Share"].map((h) => (
-                          <th key={h} className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[9px] sm:text-[10px] font-semibold text-zinc-600 uppercase tracking-wider ${h === "#" ? "text-left w-8" : h === "Category" ? "text-left" : "text-right"}`}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleProducts.map((item, i) => (
-                        <tr key={item.group_name} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-700 font-mono text-[9px] sm:text-[10px]">{i + 1}</td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
-                              <span className="font-medium text-zinc-200 text-[11px] sm:text-xs">{item.group_name}</span>
-                            </div>
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-white text-[11px] sm:text-xs">
-                            {formatINR(parseFloat(item.total_revenue))}
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-400 text-[11px] sm:text-xs">
-                            {parseInt(item.total_units_sold).toLocaleString("en-IN")}
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-12 sm:w-16 h-1.5 bg-[#1c1c1f] rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{
-                                    width: `${Math.min(parseFloat(item.revenue_pct) / (parseFloat(productPerf[0]?.revenue_pct) || 1) * 100, 100)}%`,
-                                    backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-                                  }}
-                                />
-                              </div>
-                              <span className="text-[10px] sm:text-[11px] font-mono font-semibold" style={{ color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}>
-                                {item.revenue_pct}%
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* Compact list */}
+                <div className="space-y-0">
+                  {visibleProducts.map((item, i) => (
+                    <div key={item.group_name} className="flex items-center gap-2 py-1.5 px-1 border-b border-[#1c1c1f]/40 hover:bg-white/[0.01] transition-colors">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
+                      <span className="text-[11px] text-zinc-300 truncate flex-1">{item.group_name}</span>
+                      <span className="text-[10px] font-mono font-semibold ml-auto" style={{ color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}>
+                        {item.revenue_pct}%
+                      </span>
+                      <span className="text-[10px] font-mono text-zinc-500 w-16 text-right">
+                        {formatINR(parseFloat(item.total_revenue))}
+                      </span>
+                    </div>
+                  ))}
                 </div>
                 {productPerf.length > COLLAPSED_COUNT && (
                   <ExpandButton expanded={productExpanded} total={productPerf.length} onClick={() => setProductExpanded(!productExpanded)} />
