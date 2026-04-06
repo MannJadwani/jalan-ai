@@ -237,6 +237,7 @@ export default function Dashboard() {
   const [stockoutsExpanded, setStockoutsExpanded] = useState(false);
   const [duesExpanded, setDuesExpanded] = useState(false);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
+  const [productExpanded, setProductExpanded] = useState(false);
 
   const COLLAPSED_COUNT = 10;
 
@@ -323,7 +324,9 @@ export default function Dashboard() {
 
       // ── Product Performance ──
       if (data.productPerformance) {
-        setProductPerf(normalizeArray(data.productPerformance));
+        const perfArr: ProductPerfItem[] = normalizeArray(data.productPerformance);
+        perfArr.sort((a, b) => parseFloat(b.revenue_pct) - parseFloat(a.revenue_pct));
+        setProductPerf(perfArr);
       }
 
       // ── Category Monthly ──
@@ -352,6 +355,7 @@ export default function Dashboard() {
   const visibleStockouts = stockoutsExpanded ? stockouts : stockouts.slice(0, COLLAPSED_COUNT);
   const visibleDues = duesExpanded ? dues : dues.slice(0, COLLAPSED_COUNT);
   const visibleCategories = categoryExpanded ? categoryMonthly : categoryMonthly.slice(0, COLLAPSED_COUNT);
+  const visibleProducts = productExpanded ? productPerf : productPerf.slice(0, COLLAPSED_COUNT);
 
   // Pie chart data from productPerf — top 10 + "Others"
   const pieData = (() => {
@@ -614,62 +618,61 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* ─── TOP CUSTOMERS | PRODUCT DONUT ────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4">
-            {/* Top Customers */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.45 }}
-              className="lg:col-span-3 card-embossed rounded-xl p-3 sm:p-5"
-            >
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0">
-                    <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 icon-glow-emerald" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-white">Top Customers by Revenue</h3>
-                    <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Last month&apos;s highest spenders</p>
-                  </div>
+          {/* ─── TOP CUSTOMERS ──────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.45 }}
+            className="card-embossed rounded-xl p-3 sm:p-5"
+          >
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0">
+                  <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 icon-glow-emerald" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] text-zinc-600 bg-[#161618] border border-[#2a2a2f] px-2 py-1 rounded-md font-mono">
-                  {customersExpanded ? topCustomers.length : Math.min(COLLAPSED_COUNT, topCustomers.length)}/{topCustomers.length}
-                </span>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold text-white">Top Customers by Revenue</h3>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Last month&apos;s highest spenders</p>
+                </div>
               </div>
-              {loading ? <LoadingSkeleton h="h-[300px] sm:h-[400px]" /> : (
-                <>
-                  <div className={`${customersExpanded ? "h-[500px] sm:h-[700px]" : "h-[280px] sm:h-[320px]"} overflow-y-auto pr-1 transition-all duration-300`}>
-                    <ResponsiveContainer width="100%" height={visibleCustomers.length * 28}>
-                      <BarChart data={visibleCustomers} layout="vertical" margin={{ left: 0, right: 16 }}>
-                        <defs>
-                          <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#34d399" />
-                            <stop offset="100%" stopColor="#22d3ee" />
-                          </linearGradient>
-                        </defs>
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" stroke="#52525b" fontSize={9} width={120} tickLine={false} axisLine={false} />
-                        <Tooltip content={<CustomerTooltip />} />
-                        <Bar dataKey="revenue" fill="url(#barGrad)" radius={[0, 4, 4, 0]} barSize={14} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  {topCustomers.length > COLLAPSED_COUNT && (
-                    <ExpandButton expanded={customersExpanded} total={topCustomers.length} onClick={() => setCustomersExpanded(!customersExpanded)} />
-                  )}
-                </>
-              )}
-            </motion.div>
+              <span className="text-[9px] sm:text-[10px] text-zinc-600 bg-[#161618] border border-[#2a2a2f] px-2 py-1 rounded-md font-mono">
+                {customersExpanded ? topCustomers.length : Math.min(COLLAPSED_COUNT, topCustomers.length)}/{topCustomers.length}
+              </span>
+            </div>
+            {loading ? <LoadingSkeleton h="h-[300px] sm:h-[400px]" /> : (
+              <>
+                <div className={`${customersExpanded ? "h-[500px] sm:h-[700px]" : "h-[280px] sm:h-[320px]"} overflow-y-auto pr-1 transition-all duration-300`}>
+                  <ResponsiveContainer width="100%" height={visibleCustomers.length * 28}>
+                    <BarChart data={visibleCustomers} layout="vertical" margin={{ left: 0, right: 16 }}>
+                      <defs>
+                        <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#34d399" />
+                          <stop offset="100%" stopColor="#22d3ee" />
+                        </linearGradient>
+                      </defs>
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="name" stroke="#52525b" fontSize={9} width={120} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomerTooltip />} />
+                      <Bar dataKey="revenue" fill="url(#barGrad)" radius={[0, 4, 4, 0]} barSize={14} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {topCustomers.length > COLLAPSED_COUNT && (
+                  <ExpandButton expanded={customersExpanded} total={topCustomers.length} onClick={() => setCustomersExpanded(!customersExpanded)} />
+                )}
+              </>
+            )}
+          </motion.div>
 
-            {/* Product Performance Donut */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 }}
-              className="lg:col-span-2 card-embossed rounded-xl p-3 sm:p-5"
-            >
-              <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+          {/* ─── PRODUCT PERFORMANCE ──────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
+            className="card-embossed rounded-xl p-3 sm:p-5"
+          >
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0">
                   <PieChartIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 icon-glow-amber" />
                 </div>
@@ -678,58 +681,106 @@ export default function Dashboard() {
                   <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Revenue split by category</p>
                 </div>
               </div>
-              {loading ? <LoadingSkeleton h="h-[240px]" /> : pieData.length === 0 ? (
-                <p className="text-xs text-zinc-600 text-center py-8">No data available</p>
-              ) : (
-                <>
-                  <div className="h-[200px] sm:h-[240px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="40%"
-                          outerRadius="65%"
-                          paddingAngle={2}
-                          dataKey="value"
-                          stroke="none"
-                        >
-                          {pieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          formatter={(value: any, _name: any, props: any) => [
-                            `${value}% — ${formatINR(props.payload.revenue)}`,
-                            props.payload.name,
-                          ]}
-                          contentStyle={{
-                            background: "#111113",
-                            border: "1px solid #1f1f23",
-                            borderRadius: "8px",
-                            fontSize: "11px",
-                            color: "#e4e4e7",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-2 sm:mt-3">
-                    {pieData.map((cat) => (
-                      <div key={cat.name} className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px]">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.fill, boxShadow: `0 0 6px ${cat.fill}40` }} />
-                        <span className="text-zinc-400 truncate">{cat.name}</span>
-                        <span className="text-zinc-600 ml-auto font-mono">{cat.value}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </div>
+              <span className="text-[9px] sm:text-[10px] text-zinc-600 bg-[#161618] border border-[#2a2a2f] px-2 py-1 rounded-md font-mono">
+                {productExpanded ? productPerf.length : Math.min(COLLAPSED_COUNT, productPerf.length)}/{productPerf.length}
+              </span>
+            </div>
+            {loading ? <LoadingSkeleton h="h-[300px]" /> : productPerf.length === 0 ? (
+              <p className="text-xs text-zinc-600 text-center py-8">No data available</p>
+            ) : (
+              <>
+                {/* Donut chart — always top 10 */}
+                <div className="h-[200px] sm:h-[240px] mb-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="40%"
+                        outerRadius="65%"
+                        paddingAngle={2}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        formatter={(value: any, _name: any, props: any) => [
+                          `${value}% — ${formatINR(props.payload.revenue)}`,
+                          props.payload.name,
+                        ]}
+                        contentStyle={{
+                          background: "#111113",
+                          border: "1px solid #1f1f23",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          color: "#e4e4e7",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Full table */}
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                  <table className="w-full text-sm min-w-[500px]">
+                    <thead>
+                      <tr className="border-b border-[#1c1c1f]">
+                        {["#", "Category", "Revenue", "Units Sold", "Share"].map((h) => (
+                          <th key={h} className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[9px] sm:text-[10px] font-semibold text-zinc-600 uppercase tracking-wider ${h === "#" ? "text-left w-8" : h === "Category" ? "text-left" : "text-right"}`}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleProducts.map((item, i) => (
+                        <tr key={item.group_name} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
+                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-700 font-mono text-[9px] sm:text-[10px]">{i + 1}</td>
+                          <td className="py-2 sm:py-2.5 px-3 sm:px-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
+                              <span className="font-medium text-zinc-200 text-[11px] sm:text-xs">{item.group_name}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-white text-[11px] sm:text-xs">
+                            {formatINR(parseFloat(item.total_revenue))}
+                          </td>
+                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-400 text-[11px] sm:text-xs">
+                            {parseInt(item.total_units_sold).toLocaleString("en-IN")}
+                          </td>
+                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="w-12 sm:w-16 h-1.5 bg-[#1c1c1f] rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{
+                                    width: `${Math.min(parseFloat(item.revenue_pct) / (parseFloat(productPerf[0]?.revenue_pct) || 1) * 100, 100)}%`,
+                                    backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                                  }}
+                                />
+                              </div>
+                              <span className="text-[10px] sm:text-[11px] font-mono font-semibold" style={{ color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}>
+                                {item.revenue_pct}%
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {productPerf.length > COLLAPSED_COUNT && (
+                  <ExpandButton expanded={productExpanded} total={productPerf.length} onClick={() => setProductExpanded(!productExpanded)} />
+                )}
+              </>
+            )}
+          </motion.div>
 
           {/* ─── CATEGORY MONTHLY PERFORMANCE ─────────────────────────── */}
           <motion.div
