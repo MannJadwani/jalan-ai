@@ -282,7 +282,9 @@ export default function Dashboard() {
 
       // ── Monthly Sales Summary (table) ──
       if (data.monthlySalesSummary) {
-        const summArr = normalizeArray(data.monthlySalesSummary);
+        const summArr: MonthlySalesSummaryItem[] = normalizeArray(data.monthlySalesSummary);
+        // Show newest month first
+        summArr.reverse();
         setSalesSummary(summArr);
       }
 
@@ -542,7 +544,8 @@ export default function Dashboard() {
                   <tbody>
                     {salesSummary.map((item, i) => {
                       const revenue = parseFloat(item.total_revenue);
-                      const prevRevenue = i > 0 ? parseFloat(salesSummary[i - 1].total_revenue) : null;
+                      // Array is reversed (newest first), so previous month is at i+1
+                      const prevRevenue = i < salesSummary.length - 1 ? parseFloat(salesSummary[i + 1].total_revenue) : null;
                       const change = prevRevenue ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
 
                       return (
