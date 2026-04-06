@@ -618,12 +618,14 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* ─── TOP CUSTOMERS ──────────────────────────────────────── */}
+          {/* ─── TOP CUSTOMERS | PRODUCT PERFORMANCE ────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4">
+          {/* Top Customers */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.45 }}
-            className="card-embossed rounded-xl p-3 sm:p-5"
+            className="lg:col-span-3 card-embossed rounded-xl p-3 sm:p-5"
           >
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -664,12 +666,12 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* ─── PRODUCT PERFORMANCE ──────────────────────────────────── */}
+          {/* Product Performance */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}
-            className="card-embossed rounded-xl p-3 sm:p-5"
+            className="lg:col-span-2 card-embossed rounded-xl p-3 sm:p-5"
           >
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -781,6 +783,7 @@ export default function Dashboard() {
               </>
             )}
           </motion.div>
+          </div>
 
           {/* ─── CATEGORY MONTHLY PERFORMANCE ─────────────────────────── */}
           <motion.div
