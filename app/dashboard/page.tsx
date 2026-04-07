@@ -307,19 +307,9 @@ export default function Dashboard() {
         setStockouts(normalizeArray(data.stockouts));
       }
 
-      // ── Outstanding Dues ──
+      // ── Outstanding Dues (preserve backend order: by outstanding amount desc) ──
       if (data.outstandingDues) {
-        const rawDues: DuesItem[] = normalizeArray(data.outstandingDues);
-        const riskOrder: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
-        rawDues.sort((a, b) => {
-          const aRisk = Object.keys(riskOrder).find((k) => a.risk_status.includes(k));
-          const bRisk = Object.keys(riskOrder).find((k) => b.risk_status.includes(k));
-          const aOrder = aRisk ? riskOrder[aRisk] : 4;
-          const bOrder = bRisk ? riskOrder[bRisk] : 4;
-          if (aOrder !== bOrder) return aOrder - bOrder;
-          return parseFloat(b.total_due_amount) - parseFloat(a.total_due_amount);
-        });
-        setDues(rawDues);
+        setDues(normalizeArray(data.outstandingDues));
       }
 
       // ── Product Performance ──
