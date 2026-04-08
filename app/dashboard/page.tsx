@@ -18,7 +18,6 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
-  FileSpreadsheet,
 } from "lucide-react";
 import Link from "next/link";
 import Sidebar from "../components/Sidebar";
@@ -163,10 +162,40 @@ function parseMonthLabel(isoOrLabel: string): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SalesTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
+    const data = payload[0].payload;
     return (
-      <div className="card-embossed rounded-lg px-4 py-3">
-        <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-sm font-bold text-white">₹{payload[0].value.toFixed(2)} Cr</p>
+      <div className="card-embossed rounded-lg px-4 py-3 min-w-[180px]">
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">{label}</p>
+          {data.momChange !== undefined && data.momChange !== null && (
+            <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded ${data.momChange >= 0 ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10"}`}>
+              {data.momChange >= 0 ? "+" : ""}{data.momChange.toFixed(1)}%
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-bold text-white mb-2">₹{payload[0].value.toFixed(2)} Cr</p>
+        {(data.invoices || data.activeCustomers || data.unitsSold) && (
+          <div className="space-y-1 border-t border-[#1c1c1f] pt-2">
+            {data.invoices != null && (
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-zinc-500">Invoices</span>
+                <span className="text-zinc-300 font-mono">{data.invoices.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {data.activeCustomers != null && (
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-zinc-500">Active Customers</span>
+                <span className="text-zinc-300 font-mono">{data.activeCustomers}</span>
+              </div>
+            )}
+            {data.unitsSold != null && (
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-zinc-500">Units Sold</span>
+                <span className="text-zinc-300 font-mono">{data.unitsSold.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -222,8 +251,7 @@ function normalizeArray(data: any): any[] {
 // ─── MAIN ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const [monthlySales, setMonthlySales] = useState<{ month: string; revenue: number }[]>([]);
-  const [salesSummary, setSalesSummary] = useState<MonthlySalesSummaryItem[]>([]);
+  const [monthlySales, setMonthlySales] = useState<{ month: string; revenue: number; invoices?: number; activeCustomers?: number; unitsSold?: number; momChange?: number | null }[]>([]);
   const [topCustomers, setTopCustomers] = useState<{ name: string; fullName: string; revenue: number }[]>([]);
   const [stockouts, setStockouts] = useState<StockoutItem[]>([]);
   const [dues, setDues] = useState<DuesItem[]>([]);
@@ -247,47 +275,68 @@ export default function Dashboard() {
       const res = await fetch("/api/dashboard");
       const data = await res.json();
 
-      // ── Monthly Sales (chart) ──
-      if (data.monthlySales) {
+      // ── Monthly Sales (chart) — merge with summary data ──
+      {
         let salesArr: Array<MonthlySaleFormatted | MonthlySaleRaw> = [];
-        if (Array.isArray(data.monthlySales)) {
-          if (data.monthlySales[0]?.output?.monthly_sales) {
-            salesArr = data.monthlySales[0].output.monthly_sales;
-          } else {
-            salesArr = data.monthlySales;
+        if (data.monthlySales) {
+          if (Array.isArray(data.monthlySales)) {
+            if (data.monthlySales[0]?.output?.monthly_sales) {
+              salesArr = data.monthlySales[0].output.monthly_sales;
+            } else {
+              salesArr = data.monthlySales;
+            }
+          } else if (data.monthlySales?.output?.monthly_sales) {
+            salesArr = data.monthlySales.output.monthly_sales;
+          } else if (data.monthlySales && typeof data.monthlySales === "object") {
+            salesArr = [data.monthlySales];
           }
-        } else if (data.monthlySales?.output?.monthly_sales) {
-          salesArr = data.monthlySales.output.monthly_sales;
-        } else if (data.monthlySales && typeof data.monthlySales === "object") {
-          salesArr = [data.monthlySales];
         }
 
-        setMonthlySales(
-          salesArr.map((item) => {
-            if ("revenue_formatted" in item) {
-              return {
-                month: item.month.replace(/\s*20(\d{2})/, " '$1"),
-                revenue: parseCrValue(item.revenue_formatted),
-              };
-            }
+        // Parse summary data for enrichment
+        const summArr: MonthlySalesSummaryItem[] = data.monthlySalesSummary
+          ? normalizeArray(data.monthlySalesSummary)
+          : [];
+
+        // Build a lookup of summary data by month label
+        const summaryByMonth: Record<string, MonthlySalesSummaryItem> = {};
+        for (const s of summArr) {
+          summaryByMonth[parseMonthLabel(s.month)] = s;
+        }
+
+        const chartData = salesArr.map((item) => {
+          let month: string;
+          let revenue: number;
+
+          if ("revenue_formatted" in item) {
+            month = item.month.replace(/\s*20(\d{2})/, " '$1");
+            revenue = parseCrValue(item.revenue_formatted);
+          } else {
             const raw = item as MonthlySaleRaw;
             const date = new Date(raw.month);
-            const monthLabel = date.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-            const revenueInCr = parseFloat(raw.total_revenue) / 10000000;
-            return {
-              month: monthLabel,
-              revenue: parseFloat(revenueInCr.toFixed(2)),
-            };
-          })
-        );
-      }
+            month = date.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+            revenue = parseFloat((parseFloat(raw.total_revenue) / 10000000).toFixed(2));
+          }
 
-      // ── Monthly Sales Summary (table) ──
-      if (data.monthlySalesSummary) {
-        const summArr: MonthlySalesSummaryItem[] = normalizeArray(data.monthlySalesSummary);
-        // Show newest month first
-        summArr.reverse();
-        setSalesSummary(summArr);
+          const summ = summaryByMonth[month];
+          return {
+            month,
+            revenue,
+            invoices: summ ? parseInt(summ.total_invoices) : undefined,
+            activeCustomers: summ ? parseInt(summ.active_customers) : undefined,
+            unitsSold: summ ? Math.round(parseFloat(summ.total_units_sold)) : undefined,
+            momChange: null as number | null,
+          };
+        });
+
+        // Calculate MoM % change (data is oldest→newest)
+        for (let i = 1; i < chartData.length; i++) {
+          const prev = chartData[i - 1].revenue;
+          if (prev > 0) {
+            chartData[i].momChange = ((chartData[i].revenue - prev) / prev) * 100;
+          }
+        }
+
+        setMonthlySales(chartData);
       }
 
       // ── Top Customers ──
@@ -487,7 +536,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-semibold text-white">Monthly Sales Trend</h3>
-                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Revenue over the last 12 months</p>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Hover for detailed breakdown</p>
                 </div>
               </div>
               {monthlySales.length > 1 && (() => {
@@ -518,92 +567,6 @@ export default function Dashboard() {
                     <Area type="monotone" dataKey="revenue" stroke="#22d3ee" strokeWidth={2} fill="url(#salesGrad)" dot={{ fill: "#09090b", stroke: "#22d3ee", strokeWidth: 2, r: 3 }} activeDot={{ r: 5, fill: "#22d3ee", stroke: "#09090b", strokeWidth: 2 }} />
                   </AreaChart>
                 </ResponsiveContainer>
-              </div>
-            )}
-          </motion.div>
-
-          {/* ─── MONTHLY SALES SUMMARY (Table) ────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.38 }}
-            className="card-embossed rounded-xl p-3 sm:p-5"
-          >
-            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0">
-                <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400 icon-glow-blue" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-semibold text-white">Monthly Sales Summary</h3>
-                <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Detailed breakdown by month</p>
-              </div>
-            </div>
-
-            {loading ? <LoadingSkeleton h="h-[200px]" /> : salesSummary.length === 0 ? (
-              <p className="text-xs text-zinc-600 text-center py-8">No summary data available</p>
-            ) : (
-              <div className="overflow-x-auto -mx-3 sm:mx-0">
-                <table className="w-full text-sm min-w-[600px]">
-                  <thead>
-                    <tr className="border-b border-[#1c1c1f]">
-                      {["Month", "Revenue", "Invoices", "Active Customers", "Units Sold"].map((h) => (
-                        <th key={h} className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[9px] sm:text-[10px] font-semibold text-zinc-600 uppercase tracking-wider ${h === "Month" ? "text-left" : "text-right"}`}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesSummary.map((item, i) => {
-                      const revenue = parseFloat(item.total_revenue);
-                      // Array is reversed (newest first), so previous month is at i+1
-                      const prevRevenue = i < salesSummary.length - 1 ? parseFloat(salesSummary[i + 1].total_revenue) : null;
-                      const change = prevRevenue ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
-
-                      return (
-                        <tr key={item.month} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 font-semibold text-white text-[11px] sm:text-xs">
-                            <div className="flex items-center gap-2">
-                              {parseMonthLabel(item.month)}
-                              {change !== null && (
-                                <span className={`text-[9px] font-mono ${change >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                  {change >= 0 ? "+" : ""}{change.toFixed(1)}%
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-cyan-400 text-[11px] sm:text-xs">
-                            {formatINR(revenue)}
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-300 text-[11px] sm:text-xs">
-                            {parseInt(item.total_invoices).toLocaleString("en-IN")}
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-400 text-[11px] sm:text-xs">
-                            {item.active_customers}
-                          </td>
-                          <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-400 text-[11px] sm:text-xs">
-                            {parseFloat(item.total_units_sold).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-[#2a2a2f]">
-                      <td className="py-2.5 sm:py-3 px-3 sm:px-4 font-bold text-zinc-300 text-[11px] sm:text-xs">Total</td>
-                      <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono font-bold text-white text-[11px] sm:text-xs">
-                        {formatINR(salesSummary.reduce((s, i) => s + parseFloat(i.total_revenue), 0))}
-                      </td>
-                      <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono font-bold text-zinc-300 text-[11px] sm:text-xs">
-                        {salesSummary.reduce((s, i) => s + parseInt(i.total_invoices), 0).toLocaleString("en-IN")}
-                      </td>
-                      <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono text-zinc-500 text-[11px] sm:text-xs">—</td>
-                      <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono font-bold text-zinc-300 text-[11px] sm:text-xs">
-                        {salesSummary.reduce((s, i) => s + parseFloat(i.total_units_sold), 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
               </div>
             )}
           </motion.div>
