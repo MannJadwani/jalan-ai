@@ -94,7 +94,7 @@ export default function Sidebar() {
         {(isMobile || !collapsed) && (
           <div className="overflow-hidden flex-1">
             <h1 className="text-sm font-bold text-white whitespace-nowrap tracking-tight">
-              Jalan AI
+              Assistant JWB
             </h1>
             <p className="text-[10px] text-zinc-600 whitespace-nowrap">
               {session?.role === "admin"
@@ -211,7 +211,7 @@ export default function Sidebar() {
         </button>
         <div className="flex items-center gap-2 flex-1">
           <Zap className="w-4 h-4 text-cyan-400 icon-glow-cyan" />
-          <span className="text-sm font-bold text-white">Jalan AI</span>
+          <span className="text-sm font-bold text-white">Assistant JWB</span>
         </div>
       </div>
 

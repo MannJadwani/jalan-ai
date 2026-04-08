@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Jalan AI - Smart Business Intelligence",
+  title: "Assistant JWB - Smart Business Intelligence",
   description: "AI-powered chatbot for business analytics and insights",
 };
 

@@ -62,7 +62,7 @@ export default function LoginPage() {
             <Zap className="w-7 h-7 text-cyan-400 icon-glow-cyan" />
           </div>
           <h1 className="text-xl font-bold text-white tracking-tight">
-            Jalan AI
+            Assistant JWB
           </h1>
           <p className="text-xs text-zinc-600 mt-1">
             Smart Business Intelligence
@@ -131,7 +131,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-[10px] text-zinc-700 mt-4">
-          Jalan AI Business Intelligence Platform
+          Assistant JWB Business Intelligence Platform
         </p>
       </div>
     </div>

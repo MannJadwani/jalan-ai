@@ -211,7 +211,7 @@ export default function ChatPage() {
       });
 
       const rawText = await response.text();
-      console.log("[Jalan AI] Raw response:", rawText);
+      console.log("[Assistant JWB] Raw response:", rawText);
 
       if (!rawText || rawText.trim() === "") {
         const emptyMessage: Message = {
@@ -238,7 +238,7 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("[Jalan AI] Error:", error);
+      console.error("[Assistant JWB] Error:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -280,7 +280,7 @@ export default function ChatPage() {
                 <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-400 rounded-full border-2 border-[#09090b] phosphor-pulse" />
               </div>
               <div>
-                <h1 className="text-xs sm:text-sm font-semibold text-white">Jalan AI Assistant</h1>
+                <h1 className="text-xs sm:text-sm font-semibold text-white">Assistant JWB</h1>
                 <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">
                   Ask anything about your business data
                 </p>
@@ -508,7 +508,7 @@ export default function ChatPage() {
               </div>
             </form>
             <p className="text-center text-[9px] sm:text-[10px] text-zinc-700 mt-1.5 sm:mt-2">
-              Jalan AI can make mistakes. Verify important data from your reports.
+              Assistant JWB can make mistakes. Verify important data from your reports.
             </p>
           </div>
         </div>
