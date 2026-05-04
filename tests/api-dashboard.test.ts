@@ -11,6 +11,7 @@ function mockFetchResponse(body: unknown) {
   return {
     text: () => Promise.resolve(typeof body === "string" ? body : JSON.stringify(body)),
     status: 200,
+    ok: true,
   };
 }
 
@@ -51,20 +52,21 @@ describe("GET /api/dashboard", () => {
     expect(data).toHaveProperty("outstandingDues");
     expect(data).toHaveProperty("productPerformance");
     expect(data).toHaveProperty("categoryMonthly");
+    expect(data).toHaveProperty("_meta");
   });
 
-  it("handles empty response body gracefully", async () => {
+  it("falls back when every endpoint returns an empty response body", async () => {
     mockFetch.mockResolvedValue(mockFetchResponse(""));
 
     const response = await GET();
     const data = await response.json();
 
-    // All fields should be null for empty responses
-    expect(data.monthlySales).toBeNull();
-    expect(data.topCustomers).toBeNull();
+    expect(data._meta.source).toBe("fallback");
+    expect(data.monthlySales.length).toBeGreaterThan(0);
+    expect(data.topCustomers.length).toBeGreaterThan(0);
   });
 
-  it("handles whitespace-only response body", async () => {
+  it("falls back when every endpoint returns whitespace-only response body", async () => {
     mockFetch.mockResolvedValue({
       text: () => Promise.resolve("   \n  "),
       status: 200,
@@ -73,22 +75,22 @@ describe("GET /api/dashboard", () => {
     const response = await GET();
     const data = await response.json();
 
-    expect(data.monthlySales).toBeNull();
+    expect(data._meta.source).toBe("fallback");
+    expect(data.monthlySales.length).toBeGreaterThan(0);
   });
 
-  it("handles fetch errors gracefully (returns null per endpoint)", async () => {
+  it("handles fetch errors gracefully with fallback data", async () => {
     mockFetch.mockRejectedValue(new Error("Network error"));
 
     const response = await GET();
     const data = await response.json();
 
-    expect(data.monthlySales).toBeNull();
-    expect(data.topCustomers).toBeNull();
-    expect(data.stockouts).toBeNull();
-    expect(data.outstandingDues).toBeNull();
+    expect(data._meta.source).toBe("fallback");
+    expect(data.monthlySales.length).toBeGreaterThan(0);
+    expect(data.topCustomers.length).toBeGreaterThan(0);
   });
 
-  it("handles invalid JSON response gracefully", async () => {
+  it("falls back when every endpoint returns invalid JSON", async () => {
     mockFetch.mockResolvedValue({
       text: () => Promise.resolve("not json {{{"),
       status: 200,
@@ -97,8 +99,8 @@ describe("GET /api/dashboard", () => {
     const response = await GET();
     const data = await response.json();
 
-    // Should return null for endpoints with invalid JSON
-    expect(data.monthlySales).toBeNull();
+    expect(data._meta.source).toBe("fallback");
+    expect(data.monthlySales.length).toBeGreaterThan(0);
   });
 
   it("parses valid JSON arrays correctly", async () => {
@@ -111,6 +113,7 @@ describe("GET /api/dashboard", () => {
     const data = await response.json();
 
     expect(data.monthlySales).toEqual(mockData);
+    expect(data._meta.source).toBe("live");
   });
 
   it("handles mixed success/failure across endpoints", async () => {
@@ -132,5 +135,6 @@ describe("GET /api/dashboard", () => {
     const hasNull = values.filter((v) => v === null);
     expect(hasData.length).toBeGreaterThan(0);
     expect(hasNull.length).toBeGreaterThan(0);
+    expect(data._meta.source).toBe("live");
   });
 });
