@@ -61,16 +61,16 @@ interface MonthlySalesSummaryItem {
 }
 
 interface CustomerRevenue {
-  customer_id: string;
-  customer_name: string;
-  total_revenue: string;
+  customer_id?: string;
+  customer_name?: string;
+  total_revenue?: string;
 }
 
 interface StockoutItem {
-  product_sku: string;
-  brand_name: string;
-  group_name: string;
-  current_stock_qty: number;
+  product_sku?: string;
+  brand_name?: string;
+  group_name?: string | null;
+  current_stock_qty?: string | number;
 }
 
 interface DuesItem {
@@ -83,17 +83,17 @@ interface DuesItem {
 }
 
 interface ProductPerfItem {
-  group_name: string;
-  total_units_sold: string;
-  total_revenue: string;
-  revenue_pct: string;
+  group_name: string | null;
+  total_units_sold?: string;
+  total_revenue?: string;
+  revenue_pct?: string;
 }
 
 interface CategoryMonthlyItem {
-  group_name: string;
-  total_revenue: string;
-  total_units_sold: string;
-  revenue_pct: string;
+  group_name: string | null;
+  total_revenue?: string;
+  total_units_sold?: string;
+  revenue_pct?: string;
   monthly_breakdown: {
     month_label: string;
     monthly_revenue: string;
@@ -117,23 +117,58 @@ function parseCrValue(formatted: string): number {
   return match ? parseFloat(match[1]) : 0;
 }
 
+function isFiniteNumeric(value: string | number | null | undefined): boolean {
+  return Number.isFinite(typeof value === "number" ? value : parseFloat(String(value ?? "")));
+}
+
+function parseNumber(value: string | number | null | undefined): number {
+  const parsed = typeof value === "number" ? value : parseFloat(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function formatINR(value: number): string {
+  if (!Number.isFinite(value)) return "₹0";
   if (value >= 10000000) return `₹${(value / 10000000).toFixed(2)} Cr`;
   if (value >= 100000) return `₹${(value / 100000).toFixed(2)} L`;
   return `₹${Math.round(value).toLocaleString("en-IN")}`;
 }
 
 function formatCompact(value: number): string {
+  if (!Number.isFinite(value)) return "0";
   if (value >= 10000000) return `${(value / 10000000).toFixed(1)} Cr`;
   if (value >= 100000) return `${(value / 100000).toFixed(1)} L`;
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return value.toFixed(0);
 }
 
-function shortenName(name: string, maxLen = 28): string {
-  let clean = name.replace(/-C$|-CC$|-K$/, "").trim();
+function shortenName(name: string | null | undefined, maxLen = 28): string {
+  let clean = (name || "Unknown").replace(/-C$|-CC$|-K$/, "").trim();
   if (clean.length > maxLen) clean = clean.substring(0, maxLen) + "…";
   return clean;
+}
+
+function hasCustomerRevenue(item: CustomerRevenue): item is Required<CustomerRevenue> {
+  return Boolean(item.customer_name && isFiniteNumeric(item.total_revenue));
+}
+
+function displayGroupName(groupName: string | null | undefined): string {
+  return groupName?.trim() || "Uncategorized";
+}
+
+function hasProductPerformance(item: ProductPerfItem): boolean {
+  return isFiniteNumeric(item.revenue_pct) && isFiniteNumeric(item.total_revenue);
+}
+
+function hasCategoryMonthly(item: CategoryMonthlyItem): boolean {
+  return isFiniteNumeric(item.total_revenue) && Array.isArray(item.monthly_breakdown);
+}
+
+function EmptyState({ message, h = "h-[220px]" }: { message: string; h?: string }) {
+  return (
+    <div className={`${h} flex items-center justify-center text-xs text-zinc-600 text-center`}>
+      {message}
+    </div>
+  );
 }
 
 function getRiskBadge(risk: string) {
@@ -303,29 +338,31 @@ export default function Dashboard() {
           summaryByMonth[parseMonthLabel(s.month)] = s;
         }
 
-        const chartData = salesArr.map((item) => {
+        const chartData = salesArr.flatMap((item) => {
           let month: string;
           let revenue: number;
 
           if ("revenue_formatted" in item) {
+            if (!item.month || !item.revenue_formatted) return [];
             month = item.month.replace(/\s*20(\d{2})/, " '$1");
             revenue = parseCrValue(item.revenue_formatted);
           } else {
             const raw = item as MonthlySaleRaw;
+            if (!raw.month || !isFiniteNumeric(raw.total_revenue)) return [];
             const date = new Date(raw.month);
             month = date.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-            revenue = parseFloat((parseFloat(raw.total_revenue) / 10000000).toFixed(2));
+            revenue = parseFloat((parseNumber(raw.total_revenue) / 10000000).toFixed(2));
           }
 
           const summ = summaryByMonth[month];
-          return {
+          return [{
             month,
             revenue,
-            invoices: summ ? parseInt(summ.total_invoices) : undefined,
-            activeCustomers: summ ? parseInt(summ.active_customers) : undefined,
-            unitsSold: summ ? Math.round(parseFloat(summ.total_units_sold)) : undefined,
+            invoices: summ ? parseNumber(summ.total_invoices) : undefined,
+            activeCustomers: summ ? parseNumber(summ.active_customers) : undefined,
+            unitsSold: summ ? Math.round(parseNumber(summ.total_units_sold)) : undefined,
             momChange: null as number | null,
-          };
+          }];
         });
 
         // Calculate MoM % change (data is oldest→newest)
@@ -343,11 +380,14 @@ export default function Dashboard() {
       if (data.topCustomers) {
         const raw: CustomerRevenue[] = normalizeArray(data.topCustomers);
         setTopCustomers(
-          raw.map((item) => ({
-            name: shortenName(item.customer_name, 22),
-            fullName: item.customer_name,
-            revenue: parseFloat(item.total_revenue),
-          }))
+          raw
+            .filter(hasCustomerRevenue)
+            .map((item) => ({
+              name: shortenName(item.customer_name, 22),
+              fullName: item.customer_name,
+              revenue: parseNumber(item.total_revenue),
+            }))
+            .filter((item) => Number.isFinite(item.revenue))
         );
       }
 
@@ -364,15 +404,21 @@ export default function Dashboard() {
       // ── Product Performance ──
       if (data.productPerformance) {
         const perfArr: ProductPerfItem[] = normalizeArray(data.productPerformance);
-        perfArr.sort((a, b) => parseFloat(b.revenue_pct) - parseFloat(a.revenue_pct));
-        setProductPerf(perfArr);
+        setProductPerf(
+          perfArr
+            .filter(hasProductPerformance)
+            .sort((a, b) => parseNumber(b.revenue_pct) - parseNumber(a.revenue_pct))
+        );
       }
 
       // ── Category Monthly ──
       if (data.categoryMonthly) {
         const catArr: CategoryMonthlyItem[] = normalizeArray(data.categoryMonthly);
-        catArr.sort((a, b) => parseFloat(b.total_revenue) - parseFloat(a.total_revenue));
-        setCategoryMonthly(catArr);
+        setCategoryMonthly(
+          catArr
+            .filter(hasCategoryMonthly)
+            .sort((a, b) => parseNumber(b.total_revenue) - parseNumber(a.total_revenue))
+        );
       }
 
       setLastUpdated(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -386,7 +432,7 @@ export default function Dashboard() {
   useEffect(() => { fetchData(); }, []);
 
   const totalRevenue = monthlySales.reduce((sum, m) => sum + m.revenue, 0);
-  const criticalStockouts = stockouts.filter((s) => s.current_stock_qty < -10000).length;
+  const criticalStockouts = stockouts.filter((s) => parseNumber(s.current_stock_qty) < -10000).length;
   const criticalDues = dues.filter((d) => d.risk_status.includes("Critical")).length;
 
   // Visible items based on expand state
@@ -398,26 +444,36 @@ export default function Dashboard() {
 
   // Pie chart data from productPerf — top 10 + "Others"
   const pieData = (() => {
-    const sorted = [...productPerf].sort((a, b) => parseFloat(b.revenue_pct) - parseFloat(a.revenue_pct));
+    const sorted = [...productPerf].sort((a, b) => parseNumber(b.revenue_pct) - parseNumber(a.revenue_pct));
     const top10 = sorted.slice(0, 10).map((item, i) => ({
-      name: item.group_name,
-      value: parseFloat(item.revenue_pct),
+      name: displayGroupName(item.group_name),
+      value: parseNumber(item.revenue_pct),
       fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-      revenue: parseFloat(item.total_revenue),
-      units: parseInt(item.total_units_sold),
+      revenue: parseNumber(item.total_revenue),
+      units: parseNumber(item.total_units_sold),
     }));
     const rest = sorted.slice(10);
     if (rest.length > 0) {
       top10.push({
         name: "Others",
-        value: parseFloat(rest.reduce((s, i) => s + parseFloat(i.revenue_pct), 0).toFixed(1)),
+        value: parseFloat(rest.reduce((s, i) => s + parseNumber(i.revenue_pct), 0).toFixed(1)),
         fill: "#6b7280",
-        revenue: rest.reduce((s, i) => s + parseFloat(i.total_revenue), 0),
-        units: rest.reduce((s, i) => s + parseInt(i.total_units_sold), 0),
+        revenue: rest.reduce((s, i) => s + parseNumber(i.total_revenue), 0),
+        units: rest.reduce((s, i) => s + parseNumber(i.total_units_sold), 0),
       });
     }
     return top10;
   })();
+
+  const categoryMonths = Array.from(
+    new Set(
+      categoryMonthly.flatMap((cat) =>
+        cat.monthly_breakdown
+          .map((month) => month.month_label)
+          .filter(Boolean)
+      )
+    )
+  );
 
   const LoadingSkeleton = ({ h = "h-[300px]" }: { h?: string }) => (
     <div className={`${h} flex items-center justify-center`}>
@@ -539,7 +595,7 @@ export default function Dashboard() {
                   <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Hover for detailed breakdown</p>
                 </div>
               </div>
-              {monthlySales.length > 1 && (() => {
+              {monthlySales.length > 1 && monthlySales[0].revenue > 0 && (() => {
                 const change = ((monthlySales[monthlySales.length - 1].revenue - monthlySales[0].revenue) / monthlySales[0].revenue) * 100;
                 const isUp = change > 0;
                 return (
@@ -550,7 +606,9 @@ export default function Dashboard() {
                 );
               })()}
             </div>
-            {loading ? <LoadingSkeleton h="h-[200px] sm:h-[300px]" /> : (
+            {loading ? <LoadingSkeleton h="h-[200px] sm:h-[300px]" /> : monthlySales.length === 0 ? (
+              <EmptyState message="No monthly sales data available" h="h-[200px] sm:h-[300px]" />
+            ) : (
               <div className="h-[200px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={monthlySales}>
@@ -594,7 +652,9 @@ export default function Dashboard() {
                 {customersExpanded ? topCustomers.length : Math.min(COLLAPSED_COUNT, topCustomers.length)}/{topCustomers.length}
               </span>
             </div>
-            {loading ? <LoadingSkeleton h="h-[300px] sm:h-[400px]" /> : (
+            {loading ? <LoadingSkeleton h="h-[300px] sm:h-[400px]" /> : topCustomers.length === 0 ? (
+              <EmptyState message="No customer revenue data available" h="h-[280px] sm:h-[320px]" />
+            ) : (
               <>
                 <div className={`${customersExpanded ? "h-[500px] sm:h-[700px]" : "h-[280px] sm:h-[320px]"} overflow-y-auto pr-1 transition-all duration-300`}>
                   <ResponsiveContainer width="100%" height={visibleCustomers.length * 28}>
@@ -656,7 +716,7 @@ export default function Dashboard() {
                       <Tooltip
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         formatter={(value: any, _name: any, props: any) => [
-                          `${value}% — ${formatINR(props.payload.revenue)}`,
+                          `${value}% - ${formatINR(props.payload.revenue)}`,
                           props.payload.name,
                         ]}
                         contentStyle={{ background: "#111113", border: "1px solid #1f1f23", borderRadius: "8px", fontSize: "11px", color: "#e4e4e7", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
@@ -668,14 +728,14 @@ export default function Dashboard() {
                 {/* Compact list */}
                 <div className="space-y-0">
                   {visibleProducts.map((item, i) => (
-                    <div key={item.group_name} className="flex items-center gap-2 py-1.5 px-1 border-b border-[#1c1c1f]/40 hover:bg-white/[0.01] transition-colors">
+                    <div key={`${displayGroupName(item.group_name)}-${i}`} className="flex items-center gap-2 py-1.5 px-1 border-b border-[#1c1c1f]/40 hover:bg-white/[0.01] transition-colors">
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
-                      <span className="text-[11px] text-zinc-300 truncate flex-1">{item.group_name}</span>
+                      <span className="text-[11px] text-zinc-300 truncate flex-1">{displayGroupName(item.group_name)}</span>
                       <span className="text-[10px] font-mono font-semibold ml-auto" style={{ color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}>
                         {item.revenue_pct}%
                       </span>
                       <span className="text-[10px] font-mono text-zinc-500 w-16 text-right">
-                        {formatINR(parseFloat(item.total_revenue))}
+                        {formatINR(parseNumber(item.total_revenue))}
                       </span>
                     </div>
                   ))}
@@ -716,7 +776,7 @@ export default function Dashboard() {
               <>
               <div className="overflow-x-auto -mx-3 sm:mx-0">
                 {(() => {
-                  const allMonths = categoryMonthly[0]?.monthly_breakdown?.map(m => m.month_label) || [];
+                  const allMonths = categoryMonths;
 
                   return (
                     <table className="w-full text-sm" style={{ minWidth: `${200 + allMonths.length * 100}px` }}>
@@ -740,11 +800,11 @@ export default function Dashboard() {
                       </thead>
                       <tbody>
                         {visibleCategories.map((cat, ci) => (
-                          <tr key={cat.group_name} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
+                          <tr key={`${displayGroupName(cat.group_name)}-${ci}`} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 sticky left-0 bg-[#111113] z-10">
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[ci % CATEGORY_COLORS.length] }} />
-                                <span className="font-medium text-zinc-200 text-[11px] sm:text-xs whitespace-nowrap">{cat.group_name}</span>
+                                <span className="font-medium text-zinc-200 text-[11px] sm:text-xs whitespace-nowrap">{displayGroupName(cat.group_name)}</span>
                               </div>
                             </td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right">
@@ -752,13 +812,16 @@ export default function Dashboard() {
                                 {cat.revenue_pct}%
                               </span>
                             </td>
-                            {cat.monthly_breakdown.map((mb) => (
-                              <td key={mb.month_label} className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-400 text-[10px] sm:text-[11px] whitespace-nowrap">
-                                {formatCompact(parseFloat(mb.monthly_revenue))}
+                            {allMonths.map((month) => {
+                              const monthData = cat.monthly_breakdown.find((mb) => mb.month_label === month);
+                              return (
+                              <td key={month} className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-400 text-[10px] sm:text-[11px] whitespace-nowrap">
+                                {monthData ? formatCompact(parseNumber(monthData.monthly_revenue)) : "—"}
                               </td>
-                            ))}
+                              );
+                            })}
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-white text-[11px] sm:text-xs whitespace-nowrap">
-                              {formatINR(parseFloat(cat.total_revenue))}
+                              {formatINR(parseNumber(cat.total_revenue))}
                             </td>
                           </tr>
                         ))}
@@ -767,10 +830,10 @@ export default function Dashboard() {
                         <tr className="border-t border-[#2a2a2f]">
                           <td className="py-2.5 sm:py-3 px-3 sm:px-4 font-bold text-zinc-300 text-[11px] sm:text-xs sticky left-0 bg-[#111113] z-10">Total</td>
                           <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono font-bold text-zinc-300 text-[11px] sm:text-xs">100%</td>
-                          {allMonths.map((m, mi) => {
+                          {allMonths.map((m) => {
                             const monthTotal = categoryMonthly.reduce((sum, cat) => {
-                              const mb = cat.monthly_breakdown[mi];
-                              return sum + (mb ? parseFloat(mb.monthly_revenue) : 0);
+                              const mb = cat.monthly_breakdown.find((month) => month.month_label === m);
+                              return sum + (mb ? parseNumber(mb.monthly_revenue) : 0);
                             }, 0);
                             return (
                               <td key={m} className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono font-bold text-zinc-300 text-[10px] sm:text-[11px] whitespace-nowrap">
@@ -779,7 +842,7 @@ export default function Dashboard() {
                             );
                           })}
                           <td className="py-2.5 sm:py-3 px-3 sm:px-4 text-right font-mono font-bold text-white text-[11px] sm:text-xs whitespace-nowrap">
-                            {formatINR(categoryMonthly.reduce((s, c) => s + parseFloat(c.total_revenue), 0))}
+                            {formatINR(categoryMonthly.reduce((s, c) => s + parseNumber(c.total_revenue), 0))}
                           </td>
                         </tr>
                       </tfoot>
@@ -816,7 +879,9 @@ export default function Dashboard() {
               </span>
             </div>
 
-            {loading ? <LoadingSkeleton h="h-[200px]" /> : (
+            {loading ? <LoadingSkeleton h="h-[200px]" /> : stockouts.length === 0 ? (
+              <EmptyState message="No stockout data available" h="h-[200px]" />
+            ) : (
               <>
                 <div className="overflow-x-auto -mx-3 sm:mx-0">
                   <table className="w-full text-sm min-w-[600px]">
@@ -831,14 +896,15 @@ export default function Dashboard() {
                     </thead>
                     <tbody>
                       {visibleStockouts.map((item, i) => {
-                        const isCritical = item.current_stock_qty < -10000;
+                        const stockQty = parseNumber(item.current_stock_qty);
+                        const isCritical = stockQty < -10000;
                         return (
-                          <tr key={`${item.product_sku}-${i}`} className={`border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors ${isCritical ? "bg-rose-500/[0.02]" : ""}`}>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 font-semibold text-white text-[11px] sm:text-xs">{item.product_sku}</td>
+                          <tr key={`${item.product_sku || "stockout"}-${i}`} className={`border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors ${isCritical ? "bg-rose-500/[0.02]" : ""}`}>
+                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 font-semibold text-white text-[11px] sm:text-xs">{item.product_sku || "Unknown"}</td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-400 text-[11px] sm:text-xs">{shortenName(item.brand_name, 30)}</td>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-600 text-[11px] sm:text-xs">{item.group_name}</td>
+                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-600 text-[11px] sm:text-xs">{displayGroupName(item.group_name)}</td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-rose-400 text-[11px] sm:text-xs">
-                              {Math.round(item.current_stock_qty).toLocaleString("en-IN")}
+                              {Math.round(stockQty).toLocaleString("en-IN")}
                             </td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-center">
                               <span className={`inline-flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded border ${isCritical ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-orange-500/15 text-orange-400 border-orange-500/25"}`}>
@@ -894,7 +960,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {loading ? <LoadingSkeleton h="h-[200px]" /> : (
+            {loading ? <LoadingSkeleton h="h-[200px]" /> : dues.length === 0 ? (
+              <EmptyState message="No outstanding dues data available" h="h-[200px]" />
+            ) : (
               <>
                 <div className="overflow-x-auto -mx-3 sm:mx-0">
                   <table className="w-full text-sm min-w-[700px]">
