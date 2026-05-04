@@ -52,14 +52,6 @@ interface MonthlySaleRaw {
   total_units_sold?: string;
 }
 
-interface MonthlySalesSummaryItem {
-  month: string;
-  total_revenue: string;
-  total_invoices: string;
-  active_customers: string;
-  total_units_sold: string;
-}
-
 interface CustomerRevenue {
   customer_id?: string;
   customer_name?: string;
@@ -327,17 +319,6 @@ export default function Dashboard() {
           }
         }
 
-        // Parse summary data for enrichment
-        const summArr: MonthlySalesSummaryItem[] = data.monthlySalesSummary
-          ? normalizeArray(data.monthlySalesSummary)
-          : [];
-
-        // Build a lookup of summary data by month label
-        const summaryByMonth: Record<string, MonthlySalesSummaryItem> = {};
-        for (const s of summArr) {
-          summaryByMonth[parseMonthLabel(s.month)] = s;
-        }
-
         const chartData = salesArr.flatMap((item) => {
           let month: string;
           let revenue: number;
@@ -354,13 +335,9 @@ export default function Dashboard() {
             revenue = parseFloat((parseNumber(raw.total_revenue) / 10000000).toFixed(2));
           }
 
-          const summ = summaryByMonth[month];
           return [{
             month,
             revenue,
-            invoices: summ ? parseNumber(summ.total_invoices) : undefined,
-            activeCustomers: summ ? parseNumber(summ.active_customers) : undefined,
-            unitsSold: summ ? Math.round(parseNumber(summ.total_units_sold)) : undefined,
             momChange: null as number | null,
           }];
         });
@@ -532,7 +509,7 @@ export default function Dashboard() {
               {
                 title: "Top Customers",
                 value: topCustomers.length.toString(),
-                sub: "Ranked by last month revenue",
+                sub: "Top 100 by last month revenue",
                 icon: Users,
                 iconColor: "text-emerald-400",
                 iconGlow: "icon-glow-emerald",
@@ -592,7 +569,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-semibold text-white">Monthly Sales Trend</h3>
-                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Hover for detailed breakdown</p>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Last 12 months revenue</p>
                 </div>
               </div>
               {monthlySales.length > 1 && monthlySales[0].revenue > 0 && (() => {
@@ -644,7 +621,7 @@ export default function Dashboard() {
                   <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 icon-glow-emerald" />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-white">Top Customers by Revenue</h3>
+                  <h3 className="text-xs sm:text-sm font-semibold text-white">Top 100 Customers by Revenue</h3>
                   <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Last month&apos;s highest spenders</p>
                 </div>
               </div>
@@ -692,8 +669,8 @@ export default function Dashboard() {
                   <PieChartIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 icon-glow-amber" />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-white">Product Performance</h3>
-                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Revenue split by category</p>
+                  <h3 className="text-xs sm:text-sm font-semibold text-white">Product Performance Breakdown</h3>
+                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Last 12 months revenue split</p>
                 </div>
               </div>
               <span className="text-[9px] sm:text-[10px] text-zinc-600 bg-[#161618] border border-[#2a2a2f] px-2 py-1 rounded-md font-mono">

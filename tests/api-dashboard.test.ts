@@ -19,12 +19,12 @@ describe("GET /api/dashboard", () => {
     mockFetch.mockReset();
   });
 
-  it("calls all 7 webhook endpoints", async () => {
+  it("calls all 6 webhook endpoints", async () => {
     mockFetch.mockResolvedValue(mockFetchResponse([]));
 
     await GET();
 
-    expect(mockFetch).toHaveBeenCalledTimes(7);
+    expect(mockFetch).toHaveBeenCalledTimes(6);
   });
 
   it("sends POST requests with empty JSON body", async () => {
@@ -46,7 +46,6 @@ describe("GET /api/dashboard", () => {
     const data = await response.json();
 
     expect(data).toHaveProperty("monthlySales");
-    expect(data).toHaveProperty("monthlySalesSummary");
     expect(data).toHaveProperty("topCustomers");
     expect(data).toHaveProperty("stockouts");
     expect(data).toHaveProperty("outstandingDues");

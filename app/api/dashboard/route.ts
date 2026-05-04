@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 const ENDPOINTS = {
   monthlySales:
     "http://117.250.36.98:5678/webhook/29f37caa-de1d-49e1-bed0-6dd1b74a52ad",
-  monthlySalesSummary:
-    "http://117.250.36.98:5678/webhook/51a9dbac-4927-4695-aaed-515537bc63ba",
   topCustomers:
     "http://117.250.36.98:5678/webhook/3b896d4f-4f34-405b-9004-f3d6ab5fc612",
   stockouts:
@@ -35,7 +33,6 @@ async function fetchEndpoint(url: string) {
 export async function GET() {
   const [
     monthlySales,
-    monthlySalesSummary,
     topCustomers,
     stockouts,
     outstandingDues,
@@ -43,7 +40,6 @@ export async function GET() {
     categoryMonthly,
   ] = await Promise.all([
     fetchEndpoint(ENDPOINTS.monthlySales),
-    fetchEndpoint(ENDPOINTS.monthlySalesSummary),
     fetchEndpoint(ENDPOINTS.topCustomers),
     fetchEndpoint(ENDPOINTS.stockouts),
     fetchEndpoint(ENDPOINTS.outstandingDues),
@@ -53,7 +49,6 @@ export async function GET() {
 
   return NextResponse.json({
     monthlySales,
-    monthlySalesSummary,
     topCustomers,
     stockouts,
     outstandingDues,
