@@ -5,7 +5,7 @@ This app is deployed on a Hostinger VPS.
 ## Production Server
 
 - SSH user: `root`
-- Host: `157.173.220.87`
+- Host: `187.127.142.28`
 - App directory: `/var/www/jalan-ai`
 - Process manager: `pm2`
 - PM2 app name: `jalan-ai`
@@ -46,7 +46,7 @@ The VPS deploy pulls from GitHub, so unpushed local changes will not reach produ
 SSH into the VPS:
 
 ```bash
-ssh root@157.173.220.87
+ssh root@187.127.142.28
 ```
 
 Then run:
@@ -67,7 +67,7 @@ If dependencies did not change, `npm install` can be skipped. When in doubt, run
 From a local terminal:
 
 ```bash
-ssh root@157.173.220.87 "cd /var/www/jalan-ai && git pull origin main && npm install && npm run build && pm2 restart jalan-ai && pm2 status jalan-ai"
+ssh root@187.127.142.28 "cd /var/www/jalan-ai && git pull origin main && npm install && npm run build && pm2 restart jalan-ai && pm2 status jalan-ai"
 ```
 
 ## If SSH Host Key Changed
@@ -75,8 +75,8 @@ ssh root@157.173.220.87 "cd /var/www/jalan-ai && git pull origin main && npm ins
 If SSH reports that the host key changed and you have confirmed the VPS was rebuilt or reinstalled, remove the old known-hosts entry:
 
 ```bash
-ssh-keygen -R 157.173.220.87
-ssh -o StrictHostKeyChecking=accept-new root@157.173.220.87
+ssh-keygen -R 187.127.142.28
+ssh -o StrictHostKeyChecking=accept-new root@187.127.142.28
 ```
 
 ## If Password Login Fails
