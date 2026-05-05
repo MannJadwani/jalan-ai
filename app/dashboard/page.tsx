@@ -12,7 +12,6 @@ import {
   Users,
   Clock,
   RefreshCw,
-  ShieldAlert,
   BarChart3,
   PieChart as PieChartIcon,
   ChevronDown,
@@ -70,8 +69,18 @@ interface DuesItem {
   customer_name: string;
   total_due_amount: string;
   credit_limit: string;
-  risk_status: string;
-  utilization_pct: string | null;
+  adp?: string | number | null;
+  ADP?: string | number | null;
+  apd?: string | number | null;
+  APD?: string | number | null;
+  avg_payment_delay?: string | number | null;
+  avg_payment_delay_days?: string | number | null;
+  avg_payment_days?: string | number | null;
+  average_payment_delay?: string | number | null;
+  average_payment_delay_days?: string | number | null;
+  average_payment_days?: string | number | null;
+  days_past_due?: string | number | null;
+  payment_delay_days?: string | number | null;
 }
 
 interface ProductPerfItem {
@@ -163,18 +172,6 @@ function EmptyState({ message, h = "h-[220px]" }: { message: string; h?: string 
   );
 }
 
-function getRiskBadge(risk: string) {
-  if (risk.includes("Critical"))
-    return { label: "CRITICAL", color: "bg-red-500/15 text-red-400 border-red-500/25", dot: "bg-red-400" };
-  if (risk.includes("High"))
-    return { label: "HIGH", color: "bg-orange-500/15 text-orange-400 border-orange-500/25", dot: "bg-orange-400" };
-  if (risk.includes("Medium"))
-    return { label: "MEDIUM", color: "bg-amber-500/15 text-amber-400 border-amber-500/25", dot: "bg-amber-400" };
-  if (risk.includes("Low"))
-    return { label: "LOW", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25", dot: "bg-emerald-400" };
-  return { label: "NO LIMIT", color: "bg-zinc-500/15 text-zinc-500 border-zinc-500/25", dot: "bg-zinc-500" };
-}
-
 function parseMonthLabel(isoOrLabel: string): string {
   // If it's an ISO date string
   if (isoOrLabel.includes("T") || isoOrLabel.match(/^\d{4}-/)) {
@@ -184,6 +181,44 @@ function parseMonthLabel(isoOrLabel: string): string {
   // Already a label like "April 2025"
   const short = isoOrLabel.replace(/\s*20(\d{2})/, " '$1");
   return short.length > 8 ? isoOrLabel.substring(0, 3) + " '" + isoOrLabel.slice(-2) : short;
+}
+
+function getAPDValue(item: DuesItem): number | null {
+  const value =
+    item.apd ??
+    item.APD ??
+    item.adp ??
+    item.ADP ??
+    item.avg_payment_delay_days ??
+    item.average_payment_delay_days ??
+    item.payment_delay_days ??
+    item.avg_payment_days ??
+    item.average_payment_days ??
+    item.avg_payment_delay ??
+    item.average_payment_delay ??
+    item.days_past_due;
+
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatAPD(item: DuesItem): string {
+  const numericValue = getAPDValue(item);
+  if (numericValue !== null) return `${Math.round(numericValue)} days`;
+
+  const value =
+    item.apd ??
+    item.APD ??
+    item.adp ??
+    item.ADP ??
+    item.avg_payment_delay ??
+    item.average_payment_delay ??
+    item.days_past_due;
+
+  if (typeof value !== "string") return "N/A";
+  const trimmed = value.trim();
+  return trimmed || "N/A";
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -410,7 +445,10 @@ export default function Dashboard() {
 
   const totalRevenue = monthlySales.reduce((sum, m) => sum + m.revenue, 0);
   const criticalStockouts = stockouts.filter((s) => parseNumber(s.current_stock_qty) < -10000).length;
-  const criticalDues = dues.filter((d) => d.risk_status.includes("Critical")).length;
+  const apdValues = dues.map(getAPDValue).filter((value): value is number => value !== null);
+  const avgAPD = apdValues.length
+    ? Math.round(apdValues.reduce((sum, value) => sum + value, 0) / apdValues.length)
+    : null;
 
   // Visible items based on expand state
   const visibleCustomers = customersExpanded ? topCustomers : topCustomers.slice(0, COLLAPSED_COUNT);
@@ -523,10 +561,10 @@ export default function Dashboard() {
                 iconGlow: "icon-glow-rose",
               },
               {
-                title: "Credit Risk",
-                value: `${criticalDues} Critical`,
+                title: "APD",
+                value: avgAPD === null ? "N/A" : `${avgAPD} days`,
                 sub: `${dues.length} accounts monitored`,
-                icon: ShieldAlert,
+                icon: Clock,
                 iconColor: "text-amber-400",
                 iconGlow: "icon-glow-amber",
               },
@@ -902,38 +940,22 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* ─── OUTSTANDING DUES & CREDIT RISK ───────────────────────── */}
+          {/* ─── OUTSTANDING DUES & APD ───────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.6 }}
             className="card-embossed rounded-xl p-3 sm:p-5"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+            <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
                   <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 icon-glow-amber" />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-white">Outstanding Dues & Credit Risk</h3>
+                  <h3 className="text-xs sm:text-sm font-semibold text-white">Outstanding Dues & APD</h3>
                   <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Customers by outstanding amount</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 flex-wrap ml-10 sm:ml-0">
-                {[
-                  { key: "Critical", color: "text-red-400 bg-red-500/10 border-red-500/20" },
-                  { key: "High", color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
-                  { key: "Medium", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-                  { key: "Low", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-                ].map(({ key, color }) => {
-                  const count = dues.filter((d) => d.risk_status.includes(key)).length;
-                  if (count === 0) return null;
-                  return (
-                    <span key={key} className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border ${color}`}>
-                      {count} {key}
-                    </span>
-                  );
-                })}
               </div>
             </div>
 
@@ -942,11 +964,11 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="overflow-x-auto -mx-3 sm:mx-0">
-                  <table className="w-full text-sm min-w-[700px]">
+                  <table className="w-full text-sm min-w-[620px]">
                     <thead className="sticky top-0 bg-[#111113] z-10">
                       <tr className="border-b border-[#1c1c1f]">
-                        {["#", "Customer", "Outstanding", "Credit Limit", "Utilization", "Risk"].map((h) => (
-                          <th key={h} className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[9px] sm:text-[10px] font-semibold text-zinc-600 uppercase tracking-wider ${["Outstanding", "Credit Limit"].includes(h) ? "text-right" : h === "Utilization" || h === "Risk" ? "text-center" : "text-left"}`}>
+                        {["#", "Customer", "Outstanding", "Credit Limit", "APD"].map((h) => (
+                          <th key={h} className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[9px] sm:text-[10px] font-semibold text-zinc-600 uppercase tracking-wider ${["Outstanding", "Credit Limit"].includes(h) ? "text-right" : h === "APD" ? "text-center" : "text-left"}`}>
                             {h}
                           </th>
                         ))}
@@ -954,13 +976,11 @@ export default function Dashboard() {
                     </thead>
                     <tbody>
                       {visibleDues.map((item, i) => {
-                        const badge = getRiskBadge(item.risk_status);
                         const dueAmount = parseFloat(item.total_due_amount);
                         const creditLimit = parseFloat(item.credit_limit);
-                        const utilization = item.utilization_pct ? parseFloat(item.utilization_pct) : null;
 
                         return (
-                          <tr key={item.customer_id} className={`border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors ${item.risk_status.includes("Critical") ? "bg-red-500/[0.015]" : ""}`}>
+                          <tr key={item.customer_id} className="border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors">
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-700 font-mono text-[9px] sm:text-[10px]">{i + 1}</td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4">
                               <p className="font-medium text-zinc-200 text-[11px] sm:text-xs">{shortenName(item.customer_name, 38)}</p>
@@ -968,29 +988,9 @@ export default function Dashboard() {
                             </td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-white text-[11px] sm:text-xs">{formatINR(dueAmount)}</td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono text-zinc-500 text-[11px] sm:text-xs">{creditLimit > 0 ? formatINR(creditLimit) : "—"}</td>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4">
-                              {utilization !== null ? (
-                                <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                                  <div className="w-10 sm:w-14 h-1.5 bg-[#1c1c1f] rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${
-                                        utilization > 100 ? "bg-red-500" : utilization > 90 ? "bg-orange-500" : utilization > 75 ? "bg-amber-500" : "bg-emerald-500"
-                                      }`}
-                                      style={{ width: `${Math.min(utilization, 100)}%`, boxShadow: utilization > 90 ? "0 0 6px rgba(239,68,68,0.3)" : "none" }}
-                                    />
-                                  </div>
-                                  <span className={`text-[9px] sm:text-[10px] font-mono font-semibold ${utilization > 100 ? "text-red-400" : utilization > 90 ? "text-orange-400" : "text-zinc-500"}`}>
-                                    {utilization}%
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-zinc-700 text-[10px] text-center block">—</span>
-                              )}
-                            </td>
                             <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-center">
-                              <span className={`inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded border ${badge.color}`}>
-                                <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${badge.dot} ${badge.label === "CRITICAL" ? "phosphor-pulse" : ""}`} />
-                                {badge.label}
+                              <span className="font-mono text-[11px] sm:text-xs font-semibold text-amber-300">
+                                {formatAPD(item)}
                               </span>
                             </td>
                           </tr>

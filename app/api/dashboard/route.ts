@@ -47,10 +47,10 @@ const FALLBACK_DASHBOARD_DATA = {
     { product_sku: "GI-NIP-1", brand_name: "Jalan", group_name: "GI Fittings", current_stock_qty: "-23000" },
   ],
   outstandingDues: [
-    { customer_id: "C001", customer_name: "Reliance Industries Ltd", total_due_amount: "4520000", credit_limit: "5000000", risk_status: "Critical", utilization_pct: "90.4" },
-    { customer_id: "C002", customer_name: "Sharma Constructions Pvt Ltd", total_due_amount: "3870000", credit_limit: "4200000", risk_status: "Critical", utilization_pct: "92.1" },
-    { customer_id: "C003", customer_name: "Patel Infra Projects", total_due_amount: "3240000", credit_limit: "4500000", risk_status: "High", utilization_pct: "72.0" },
-    { customer_id: "C004", customer_name: "Agarwal Building Materials", total_due_amount: "2340000", credit_limit: "3800000", risk_status: "Medium", utilization_pct: "61.6" },
+    { customer_id: "C001", customer_name: "Reliance Industries Ltd", total_due_amount: "4520000", credit_limit: "5000000", apd: "42" },
+    { customer_id: "C002", customer_name: "Sharma Constructions Pvt Ltd", total_due_amount: "3870000", credit_limit: "4200000", apd: "38" },
+    { customer_id: "C003", customer_name: "Patel Infra Projects", total_due_amount: "3240000", credit_limit: "4500000", apd: "31" },
+    { customer_id: "C004", customer_name: "Agarwal Building Materials", total_due_amount: "2340000", credit_limit: "3800000", apd: "24" },
   ],
   productPerformance: [
     { group_name: "HDPE Pipes", total_units_sold: "24000", total_revenue: "23500000", revenue_pct: "28" },
@@ -139,14 +139,20 @@ export async function GET() {
     categoryMonthly,
   };
   const allFailed = Object.values(results).every((result) => !result.ok || result.data === null);
-  const data = allFailed
-    ? FALLBACK_DASHBOARD_DATA
-    : Object.fromEntries(Object.entries(results).map(([key, result]) => [key, result.data]));
+  const hasPartialFallback = Object.values(results).some((result) => !result.ok || result.data === null);
+  const data = Object.fromEntries(
+    Object.entries(results).map(([key, result]) => [
+      key,
+      result.ok && result.data !== null
+        ? result.data
+        : FALLBACK_DASHBOARD_DATA[key as keyof typeof FALLBACK_DASHBOARD_DATA],
+    ])
+  );
 
   return NextResponse.json({
     ...data,
     _meta: {
-      source: allFailed ? "fallback" : "live",
+      source: allFailed ? "fallback" : hasPartialFallback ? "partial_fallback" : "live",
       generatedAt: new Date().toISOString(),
       endpointStatus: Object.fromEntries(
         Object.entries(results).map(([key, result]) => [
