@@ -129,12 +129,14 @@ describe("GET /api/dashboard", () => {
     const response = await GET();
     const data = await response.json();
 
-    // Some should have data, some should be null
-    const values = Object.values(data);
-    const hasData = values.filter((v) => v !== null);
-    const hasNull = values.filter((v) => v === null);
-    expect(hasData.length).toBeGreaterThan(0);
-    expect(hasNull.length).toBeGreaterThan(0);
-    expect(data._meta.source).toBe("live");
+    expect(data.monthlySales).toEqual([{ ok: true }]);
+    expect(data.topCustomers).toEqual([{ ok: true }]);
+    expect(data.stockouts).toEqual([{ ok: true }]);
+    expect(data.outstandingDues.length).toBeGreaterThan(0);
+    expect(data.productPerformance.length).toBeGreaterThan(0);
+    expect(data.categoryMonthly.length).toBeGreaterThan(0);
+    expect(data._meta.source).toBe("partial_fallback");
+    expect(data._meta.endpointStatus.monthlySales.ok).toBe(true);
+    expect(data._meta.endpointStatus.outstandingDues.ok).toBe(false);
   });
 });
