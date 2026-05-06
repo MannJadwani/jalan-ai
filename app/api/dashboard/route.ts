@@ -16,6 +16,9 @@ const ENDPOINTS = {
 };
 
 const WEBHOOK_TIMEOUT_MS = 12_000;
+const DASHBOARD_PROXY_TIMEOUT_MS = 20_000;
+const DASHBOARD_PROXY_URL =
+  process.env.DASHBOARD_PROXY_URL ?? "https://jalan-ai-n8n.vercel.app/api/dashboard";
 
 const FALLBACK_DASHBOARD_DATA = {
   monthlySales: [
@@ -113,6 +116,41 @@ async function fetchEndpoint(url: string) {
   }
 }
 
+async function fetchDashboardProxy() {
+  if (!DASHBOARD_PROXY_URL || process.env.VERCEL === "1") return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DASHBOARD_PROXY_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(DASHBOARD_PROXY_URL, {
+      method: "GET",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (!data || typeof data !== "object") return null;
+    if (data._meta?.source === "fallback") return null;
+
+    return {
+      ...data,
+      _meta: {
+        ...data._meta,
+        source: "proxy_live",
+        proxiedFrom: DASHBOARD_PROXY_URL,
+        upstreamSource: data._meta?.source ?? "unknown",
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function GET() {
   const [
     monthlySales,
@@ -140,6 +178,25 @@ export async function GET() {
   };
   const allFailed = Object.values(results).every((result) => !result.ok || result.data === null);
   const hasPartialFallback = Object.values(results).some((result) => !result.ok || result.data === null);
+
+  if (allFailed) {
+    const proxyData = await fetchDashboardProxy();
+    if (proxyData) {
+      return NextResponse.json({
+        ...proxyData,
+        _meta: {
+          ...proxyData._meta,
+          directEndpointStatus: Object.fromEntries(
+            Object.entries(results).map(([key, result]) => [
+              key,
+              { ok: result.ok, status: result.status, error: result.error },
+            ])
+          ),
+        },
+      });
+    }
+  }
+
   const data = Object.fromEntries(
     Object.entries(results).map(([key, result]) => [
       key,

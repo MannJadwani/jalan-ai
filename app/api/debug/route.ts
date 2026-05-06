@@ -2,58 +2,84 @@ import { NextResponse } from "next/server";
 
 const ENDPOINTS = [
   {
+    id: "appDashboard",
+    name: "Current App Dashboard API",
+    url: "/api/dashboard",
+    method: "GET",
+    body: {},
+  },
+  {
+    id: "vercelDashboard",
+    name: "Vercel Dashboard API",
+    url: "https://jalan-ai-n8n.vercel.app/api/dashboard",
+    method: "GET",
+    body: {},
+  },
+  {
+    id: "appChat",
+    name: "Current App Chat API",
+    url: "/api/chat",
+    method: "POST",
+    body: { message: "Which brand has the highest average purchase rate across its catalog?" },
+  },
+  {
     id: "chat",
-    name: "AI Chat",
+    name: "Direct n8n - AI Chat",
     url: "http://117.250.36.98:5678/webhook/e5500488-4a22-47f7-abb7-0d2aba7f5f78",
     method: "POST",
     body: { message: "Which brand has the highest average purchase rate across its catalog?" },
   },
   {
     id: "monthlySales",
-    name: "Monthly Sales Trend (Last 12 Months)",
+    name: "Direct n8n - Monthly Sales Trend",
     url: "http://117.250.36.98:5678/webhook/29f37caa-de1d-49e1-bed0-6dd1b74a52ad",
     method: "POST",
     body: {},
   },
   {
     id: "topCustomers",
-    name: "Top 100 Customers by Revenue",
+    name: "Direct n8n - Top 100 Customers by Revenue",
     url: "http://117.250.36.98:5678/webhook/3b896d4f-4f34-405b-9004-f3d6ab5fc612",
     method: "POST",
     body: {},
   },
   {
     id: "stockouts",
-    name: "Stockout Alerts",
+    name: "Direct n8n - Stockout Alerts",
     url: "http://117.250.36.98:5678/webhook/12201421-465b-420f-98ce-e5bc72c26240",
     method: "POST",
     body: {},
   },
   {
     id: "outstandingDues",
-    name: "Outstanding Dues & Credit Risk",
+    name: "Direct n8n - Outstanding Dues & Credit Risk",
     url: "http://117.250.36.98:5678/webhook/a55c98a1-2c22-4e2e-a80d-140403425e7a",
     method: "POST",
     body: {},
   },
   {
     id: "productPerformance",
-    name: "Product Performance Breakdown (Last 12 Months)",
+    name: "Direct n8n - Product Performance Breakdown",
     url: "http://117.250.36.98:5678/webhook/95114b95-6b3e-43be-b4d8-51b9ecc9e8c1",
     method: "POST",
     body: {},
   },
   {
     id: "categoryMonthly",
-    name: "Category Sales - Month by Month",
+    name: "Direct n8n - Category Sales Month by Month",
     url: "http://117.250.36.98:5678/webhook/59c0d343-3179-4678-96aa-3c5ddd53bb30",
     method: "POST",
     body: {},
   },
 ];
 
+const DEBUG_TIMEOUT_MS = 20_000;
+
 export async function GET() {
-  return NextResponse.json({ endpoints: ENDPOINTS });
+  return NextResponse.json({
+    endpoints: ENDPOINTS,
+    timeoutMs: DEBUG_TIMEOUT_MS,
+  });
 }
 
 export async function POST(request: Request) {
@@ -65,19 +91,25 @@ export async function POST(request: Request) {
   }
 
   const startTime = Date.now();
+  const fetchUrl = new URL(endpoint.url, request.url).toString();
 
   const requestInfo = {
     method: endpoint.method,
-    url: endpoint.url,
+    url: fetchUrl,
     headers: { "Content-Type": "application/json" },
     body: endpoint.body,
   };
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEBUG_TIMEOUT_MS);
+
   try {
-    const res = await fetch(endpoint.url, {
+    const res = await fetch(fetchUrl, {
+      signal: controller.signal,
       method: endpoint.method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(endpoint.body),
+      body: endpoint.method === "GET" ? undefined : JSON.stringify(endpoint.body),
+      cache: "no-store",
     });
 
     const elapsed = Date.now() - startTime;
@@ -127,5 +159,7 @@ export async function POST(request: Request) {
         elapsed_formatted: elapsed > 1000 ? `${(elapsed / 1000).toFixed(1)}s` : `${elapsed}ms`,
       },
     });
+  } finally {
+    clearTimeout(timeout);
   }
 }

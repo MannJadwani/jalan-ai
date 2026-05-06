@@ -15,6 +15,7 @@ import {
   Terminal,
 } from "lucide-react";
 import Link from "next/link";
+import { ProtectedRoute } from "../lib/AuthContext";
 
 interface Endpoint {
   id: string;
@@ -26,7 +27,7 @@ interface Endpoint {
 
 interface TestResult {
   endpointId: string;
-  status: "idle" | "loading" | "success" | "error";
+  status: "idle" | "loading" | "success" | "warning" | "error";
   request?: {
     method: string;
     url: string;
@@ -51,6 +52,25 @@ interface TestResult {
     elapsed_ms: number;
     elapsed_formatted: string;
   };
+}
+
+function getResultStatus(data: Omit<TestResult, "endpointId" | "status">): TestResult["status"] {
+  if (data.error || !data.response) return "error";
+  if (data.response.status < 200 || data.response.status >= 300) return "error";
+  if (data.response.rawBodyLength === 0 || data.response.parseError) return "error";
+
+  if (
+    data.response.parsedBody &&
+    typeof data.response.parsedBody === "object" &&
+    "_meta" in data.response.parsedBody
+  ) {
+    const meta = (data.response.parsedBody as { _meta?: { source?: string } })._meta;
+    if (meta?.source && meta.source !== "live" && meta.source !== "proxy_live") {
+      return "warning";
+    }
+  }
+
+  return "success";
 }
 
 export default function DebugPage() {
@@ -89,7 +109,7 @@ export default function DebugPage() {
         ...prev,
         [endpointId]: {
           endpointId,
-          status: data.error ? "error" : data.response?.rawBodyLength === 0 ? "error" : "success",
+          status: getResultStatus(data),
           ...data,
         },
       }));
@@ -118,6 +138,7 @@ export default function DebugPage() {
     switch (status) {
       case "loading": return <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />;
       case "success": return <CheckCircle className="w-4 h-4 text-emerald-400 icon-glow-emerald" />;
+      case "warning": return <AlertTriangle className="w-4 h-4 text-amber-400 icon-glow-amber" />;
       case "error": return <XCircle className="w-4 h-4 text-rose-400 icon-glow-rose" />;
       default: return <Clock className="w-4 h-4 text-zinc-600" />;
     }
@@ -127,27 +148,14 @@ export default function DebugPage() {
     switch (status) {
       case "loading": return "border-l-cyan-500";
       case "success": return "border-l-emerald-500";
+      case "warning": return "border-l-amber-500";
       case "error": return "border-l-rose-500";
       default: return "border-l-zinc-700";
     }
   };
 
-  if (process.env.NODE_ENV === "production") {
-    return (
-      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">Debug Mode Only</h1>
-          <p className="text-zinc-500">This page is only available in development mode.</p>
-          <Link href="/dashboard" className="mt-4 inline-block text-cyan-400 text-sm hover:underline">
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <ProtectedRoute>
     <div className="min-h-screen bg-[#09090b] text-zinc-300">
       {/* Header */}
       <div className="glass border-b border-[#1c1c1f] px-6 py-4 sticky top-0 z-20">
@@ -164,7 +172,7 @@ export default function DebugPage() {
             </div>
             <div>
               <h1 className="text-sm font-bold text-white tracking-tight">API Debug Console</h1>
-              <p className="text-[10px] text-zinc-600">Test all webhook endpoints &middot; DEV ONLY</p>
+              <p className="text-[10px] text-zinc-600">Admin diagnostics for app APIs, Vercel proxy, and direct n8n webhooks</p>
             </div>
           </div>
           <button
@@ -192,6 +200,9 @@ export default function DebugPage() {
           </span>
           <span className="text-rose-500">
             {Object.values(results).filter((r) => r.status === "error").length} failed
+          </span>
+          <span className="text-amber-500">
+            {Object.values(results).filter((r) => r.status === "warning").length} warning
           </span>
           <span className="text-cyan-500">
             {Object.values(results).filter((r) => r.status === "loading").length} running
@@ -395,5 +406,6 @@ export default function DebugPage() {
         })}
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

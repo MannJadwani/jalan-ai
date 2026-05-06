@@ -15,6 +15,14 @@ function mockFetchResponse(body: unknown) {
   };
 }
 
+function mockJsonResponse(body: unknown) {
+  return {
+    json: () => Promise.resolve(body),
+    status: 200,
+    ok: true,
+  };
+}
+
 describe("GET /api/dashboard", () => {
   beforeEach(() => {
     mockFetch.mockReset();
@@ -88,6 +96,37 @@ describe("GET /api/dashboard", () => {
     expect(data._meta.source).toBe("fallback");
     expect(data.monthlySales.length).toBeGreaterThan(0);
     expect(data.topCustomers.length).toBeGreaterThan(0);
+  });
+
+  it("uses the dashboard proxy before static fallback when all direct endpoints fail", async () => {
+    const proxyData = {
+      monthlySales: [{ month: "2026-04-30T18:30:00.000Z", total_revenue: "99000000" }],
+      topCustomers: [{ customer_name: "Live Customer", total_revenue: "123" }],
+      stockouts: [],
+      outstandingDues: [],
+      productPerformance: [],
+      categoryMonthly: [],
+      _meta: { source: "live" },
+    };
+
+    let callCount = 0;
+    mockFetch.mockImplementation(() => {
+      callCount++;
+      if (callCount <= 6) {
+        return Promise.reject(new Error("Network error"));
+      }
+      return Promise.resolve(mockJsonResponse(proxyData));
+    });
+
+    const response = await GET();
+    const data = await response.json();
+
+    expect(mockFetch).toHaveBeenCalledTimes(7);
+    expect(data.monthlySales).toEqual(proxyData.monthlySales);
+    expect(data.topCustomers).toEqual(proxyData.topCustomers);
+    expect(data._meta.source).toBe("proxy_live");
+    expect(data._meta.upstreamSource).toBe("live");
+    expect(data._meta.directEndpointStatus.monthlySales.ok).toBe(false);
   });
 
   it("falls back when every endpoint returns invalid JSON", async () => {
