@@ -6,14 +6,12 @@ import {
   TrendingUp,
   TrendingDown,
   IndianRupee,
-  AlertTriangle,
   Sparkles,
   Package,
   Users,
   Clock,
   RefreshCw,
   BarChart3,
-  PieChart as PieChartIcon,
   ChevronDown,
   ChevronUp,
   Layers,
@@ -31,9 +29,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────
@@ -81,13 +76,6 @@ interface DuesItem {
   average_payment_days?: string | number | null;
   days_past_due?: string | number | null;
   payment_delay_days?: string | number | null;
-}
-
-interface ProductPerfItem {
-  group_name: string | null;
-  total_units_sold?: string;
-  total_revenue?: string;
-  revenue_pct?: string;
 }
 
 interface CategoryMonthlyItem {
@@ -154,10 +142,6 @@ function hasCustomerRevenue(item: CustomerRevenue): item is Required<CustomerRev
 
 function displayGroupName(groupName: string | null | undefined): string {
   return groupName?.trim() || "Uncategorized";
-}
-
-function hasProductPerformance(item: ProductPerfItem): boolean {
-  return isFiniteNumeric(item.revenue_pct) && isFiniteNumeric(item.total_revenue);
 }
 
 function hasCategoryMonthly(item: CategoryMonthlyItem): boolean {
@@ -317,17 +301,14 @@ export default function Dashboard() {
   const [topCustomers, setTopCustomers] = useState<{ name: string; fullName: string; revenue: number }[]>([]);
   const [stockouts, setStockouts] = useState<StockoutItem[]>([]);
   const [dues, setDues] = useState<DuesItem[]>([]);
-  const [productPerf, setProductPerf] = useState<ProductPerfItem[]>([]);
   const [categoryMonthly, setCategoryMonthly] = useState<CategoryMonthlyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
   // Expand states
   const [customersExpanded, setCustomersExpanded] = useState(false);
-  const [stockoutsExpanded, setStockoutsExpanded] = useState(false);
   const [duesExpanded, setDuesExpanded] = useState(false);
   const [categoryExpanded, setCategoryExpanded] = useState(false);
-  const [productExpanded, setProductExpanded] = useState(false);
 
   const COLLAPSED_COUNT = 10;
 
@@ -413,16 +394,6 @@ export default function Dashboard() {
         setDues(normalizeArray(data.outstandingDues));
       }
 
-      // ── Product Performance ──
-      if (data.productPerformance) {
-        const perfArr: ProductPerfItem[] = normalizeArray(data.productPerformance);
-        setProductPerf(
-          perfArr
-            .filter(hasProductPerformance)
-            .sort((a, b) => parseNumber(b.revenue_pct) - parseNumber(a.revenue_pct))
-        );
-      }
-
       // ── Category Monthly ──
       if (data.categoryMonthly) {
         const catArr: CategoryMonthlyItem[] = normalizeArray(data.categoryMonthly);
@@ -452,33 +423,8 @@ export default function Dashboard() {
 
   // Visible items based on expand state
   const visibleCustomers = customersExpanded ? topCustomers : topCustomers.slice(0, COLLAPSED_COUNT);
-  const visibleStockouts = stockoutsExpanded ? stockouts : stockouts.slice(0, COLLAPSED_COUNT);
   const visibleDues = duesExpanded ? dues : dues.slice(0, COLLAPSED_COUNT);
   const visibleCategories = categoryExpanded ? categoryMonthly : categoryMonthly.slice(0, COLLAPSED_COUNT);
-  const visibleProducts = productExpanded ? productPerf : productPerf.slice(0, COLLAPSED_COUNT);
-
-  // Pie chart data from productPerf — top 10 + "Others"
-  const pieData = (() => {
-    const sorted = [...productPerf].sort((a, b) => parseNumber(b.revenue_pct) - parseNumber(a.revenue_pct));
-    const top10 = sorted.slice(0, 10).map((item, i) => ({
-      name: displayGroupName(item.group_name),
-      value: parseNumber(item.revenue_pct),
-      fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-      revenue: parseNumber(item.total_revenue),
-      units: parseNumber(item.total_units_sold),
-    }));
-    const rest = sorted.slice(10);
-    if (rest.length > 0) {
-      top10.push({
-        name: "Others",
-        value: parseFloat(rest.reduce((s, i) => s + parseNumber(i.revenue_pct), 0).toFixed(1)),
-        fill: "#6b7280",
-        revenue: rest.reduce((s, i) => s + parseNumber(i.total_revenue), 0),
-        units: rest.reduce((s, i) => s + parseNumber(i.total_units_sold), 0),
-      });
-    }
-    return top10;
-  })();
 
   const categoryMonths = Array.from(
     new Set(
@@ -644,14 +590,12 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* ─── TOP CUSTOMERS | PRODUCT PERFORMANCE ────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4">
-          {/* Top Customers */}
+          {/* ─── TOP CUSTOMERS ─────────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.45 }}
-            className="lg:col-span-3 card-embossed rounded-xl p-3 sm:p-5"
+            className="card-embossed rounded-xl p-3 sm:p-5"
           >
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -693,75 +637,6 @@ export default function Dashboard() {
               </>
             )}
           </motion.div>
-
-          {/* Product Performance */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.5 }}
-            className="lg:col-span-2 card-embossed rounded-xl p-3 sm:p-5"
-          >
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#161618] border border-[#2a2a2f] flex items-center justify-center flex-shrink-0">
-                  <PieChartIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 icon-glow-amber" />
-                </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-white">Product Performance Breakdown</h3>
-                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Last 12 months revenue split</p>
-                </div>
-              </div>
-              <span className="text-[9px] sm:text-[10px] text-zinc-600 bg-[#161618] border border-[#2a2a2f] px-2 py-1 rounded-md font-mono">
-                {productExpanded ? productPerf.length : Math.min(COLLAPSED_COUNT, productPerf.length)}/{productPerf.length}
-              </span>
-            </div>
-            {loading ? <LoadingSkeleton h="h-[300px]" /> : productPerf.length === 0 ? (
-              <p className="text-xs text-zinc-600 text-center py-8">No data available</p>
-            ) : (
-              <>
-                {/* Donut chart */}
-                <div className="h-[180px] mb-3">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius="38%" outerRadius="62%" paddingAngle={2} dataKey="value" stroke="none">
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        formatter={(value: any, _name: any, props: any) => [
-                          `${value}% - ${formatINR(props.payload.revenue)}`,
-                          props.payload.name,
-                        ]}
-                        contentStyle={{ background: "#111113", border: "1px solid #1f1f23", borderRadius: "8px", fontSize: "11px", color: "#e4e4e7", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Compact list */}
-                <div className="space-y-0">
-                  {visibleProducts.map((item, i) => (
-                    <div key={`${displayGroupName(item.group_name)}-${i}`} className="flex items-center gap-2 py-1.5 px-1 border-b border-[#1c1c1f]/40 hover:bg-white/[0.01] transition-colors">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
-                      <span className="text-[11px] text-zinc-300 truncate flex-1">{displayGroupName(item.group_name)}</span>
-                      <span className="text-[10px] font-mono font-semibold ml-auto" style={{ color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}>
-                        {item.revenue_pct}%
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-500 w-16 text-right">
-                        {formatINR(parseNumber(item.total_revenue))}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {productPerf.length > COLLAPSED_COUNT && (
-                  <ExpandButton expanded={productExpanded} total={productPerf.length} onClick={() => setProductExpanded(!productExpanded)} />
-                )}
-              </>
-            )}
-          </motion.div>
-          </div>
 
           {/* ─── CATEGORY MONTHLY PERFORMANCE ─────────────────────────── */}
           <motion.div
@@ -868,74 +743,6 @@ export default function Dashboard() {
               {categoryMonthly.length > COLLAPSED_COUNT && (
                 <ExpandButton expanded={categoryExpanded} total={categoryMonthly.length} onClick={() => setCategoryExpanded(!categoryExpanded)} />
               )}
-              </>
-            )}
-          </motion.div>
-
-          {/* ─── STOCKOUT ALERTS ───────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.55 }}
-            className="card-embossed rounded-xl p-3 sm:p-5"
-          >
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 icon-glow-rose phosphor-pulse" />
-                </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-white">Stockout Alerts</h3>
-                  <p className="text-[10px] sm:text-[11px] text-zinc-600 hidden sm:block">Products with negative stock levels</p>
-                </div>
-              </div>
-              <span className="text-[9px] sm:text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border border-rose-500/20 tracking-wider uppercase">
-                {stockoutsExpanded ? stockouts.length : Math.min(COLLAPSED_COUNT, stockouts.length)}/{stockouts.length} items
-              </span>
-            </div>
-
-            {loading ? <LoadingSkeleton h="h-[200px]" /> : stockouts.length === 0 ? (
-              <EmptyState message="No stockout data available" h="h-[200px]" />
-            ) : (
-              <>
-                <div className="overflow-x-auto -mx-3 sm:mx-0">
-                  <table className="w-full text-sm min-w-[600px]">
-                    <thead>
-                      <tr className="border-b border-[#1c1c1f]">
-                        {["Product SKU", "Brand", "Category", "Stock Deficit", "Severity"].map((h) => (
-                          <th key={h} className={`py-2.5 sm:py-3 px-3 sm:px-4 text-[9px] sm:text-[10px] font-semibold text-zinc-600 uppercase tracking-wider ${h === "Stock Deficit" ? "text-right" : h === "Severity" ? "text-center" : "text-left"}`}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleStockouts.map((item, i) => {
-                        const stockQty = parseNumber(item.current_stock_qty);
-                        const isCritical = stockQty < -10000;
-                        return (
-                          <tr key={`${item.product_sku || "stockout"}-${i}`} className={`border-b border-[#1c1c1f]/50 hover:bg-white/[0.01] transition-colors ${isCritical ? "bg-rose-500/[0.02]" : ""}`}>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 font-semibold text-white text-[11px] sm:text-xs">{item.product_sku || "Unknown"}</td>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-400 text-[11px] sm:text-xs">{shortenName(item.brand_name, 30)}</td>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-zinc-600 text-[11px] sm:text-xs">{displayGroupName(item.group_name)}</td>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-mono font-bold text-rose-400 text-[11px] sm:text-xs">
-                              {Math.round(stockQty).toLocaleString("en-IN")}
-                            </td>
-                            <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-center">
-                              <span className={`inline-flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest px-1.5 sm:px-2 py-0.5 rounded border ${isCritical ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-orange-500/15 text-orange-400 border-orange-500/25"}`}>
-                                <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${isCritical ? "bg-red-400 phosphor-pulse" : "bg-orange-400"}`} />
-                                {isCritical ? "CRITICAL" : "LOW"}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {stockouts.length > COLLAPSED_COUNT && (
-                  <ExpandButton expanded={stockoutsExpanded} total={stockouts.length} onClick={() => setStockoutsExpanded(!stockoutsExpanded)} />
-                )}
               </>
             )}
           </motion.div>
