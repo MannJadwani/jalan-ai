@@ -144,6 +144,13 @@ function displayGroupName(groupName: string | null | undefined): string {
   return groupName?.trim() || "Uncategorized";
 }
 
+function compareCategoryDepartment(a: CategoryMonthlyItem, b: CategoryMonthlyItem): number {
+  return displayGroupName(a.group_name).localeCompare(displayGroupName(b.group_name), "en-IN", {
+    sensitivity: "base",
+    numeric: true,
+  });
+}
+
 function hasCategoryMonthly(item: CategoryMonthlyItem): boolean {
   return isFiniteNumeric(item.total_revenue) && Array.isArray(item.monthly_breakdown);
 }
@@ -400,7 +407,7 @@ export default function Dashboard() {
         setCategoryMonthly(
           catArr
             .filter(hasCategoryMonthly)
-            .sort((a, b) => parseNumber(b.total_revenue) - parseNumber(a.total_revenue))
+            .sort(compareCategoryDepartment)
         );
       }
 
